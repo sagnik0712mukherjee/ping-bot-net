@@ -1,34 +1,33 @@
-I now can give a great answer.
+# Summary of Recent Articles about Pritam
 
-# Summary of Pritam - The Music Composer
+### 1. Title: Pritam, Filmography, Movies, Pritam News, Videos, Songs ...
+- **Publish Date**: 2026-03-27 21:42:40
+- **Summary**: This article provides the latest updates on Pritam's filmography, upcoming movies, trailers, and his latest songs. 
+- **Source**: [Link](https://www.bing.com/ck/a?!&&p=a7360e73bbe8a892112918b49963a116d172e7a1d6d1566dc62173f9206d8a63JmltdHM9MTc3NDU2OTYwMA&ptn=3&ver=2&hsh=4&fclid=327e7505-b798-60c8-0462-622cb6eb6160&u=a1aHR0cHM6Ly93d3cuYm9sbHl3b29kaHVuZ2FtYS5jb20vY2VsZWJyaXR5L3ByaXRhbS8&ntb=1)
+- **Controversy**: No
 
-Pritam Chakraborty, known mononymously as Pritam, is a prominent Indian film composer and music producer known for his work in Bollywood. Below is a concise summary of the latest and relevant information about his career, accolades, and recent controversies:
+### 2. Title: rollingstoneindia.com
+- **Publish Date**: 2026-03-27 21:42:40
+- **Summary**: This page provides some insights about Pritam on rollingstoneindia.com but lacks detailed information. 
+- **Source**: [Link](https://www.bing.com/ck/a?!&&p=95e1f3eb59f7fe5f20b64bcb2f787558333edadf2ff1bc1eda8d283a8f32e42eJmltdHM9MTc3NDU2OTYwMA&ptn=3&ver=2&hsh=4&fclid=327e7505-b798-60c8-0462-622cb6eb6160&u=a1aHR0cHM6Ly9yb2xsaW5nc3RvbmVpbmRpYS5jb20vY292ZXItc3RvcnktcHJpdGFtLXRoZS1oaXQtbWFrZXIv&ntb=1)
+- **Controversy**: No
 
-## Career Highlights
-- **Popular Albums**: Pritam has composed music for several blockbuster films. His notable albums include *Kabir Singh*, *Bajrangi Bhaijaan*, *Aashiqui 2*, *Barfi!*, and *Dangal*.
-  - [Source: Bollywood Hungama](https://www.bollywoodhungama.com/)
-  
-- **Collaborations**: He frequently collaborates with singers like Arijit Singh and composers like Amit Trivedi, boosting the popularity of his compositions.
-  - [Source: Times of India](https://timesofindia.indiatimes.com/)
+### 3. Title: Pritam (@ipritamofficial) • Instagram photos and videos
+- **Publish Date**: 2026-03-27 21:42:40
+- **Summary**: Pritam's Instagram showcases his life and works, featuring photos and videos that highlight his interests in music and food. 
+- **Source**: [Link](https://www.bing.com/ck/a?!&&p=3c28df21096e5f4ced81fb3d1e068cf623f9119bf5a2f2681d8e43e5904781a7JmltdHM9MTc3NDU2OTYwMA&ptn=3&ver=2&hsh=4&fclid=327e7505-b798-60c8-0462-622cb6eb6160&u=a1aHR0cHM6Ly93d3cuaW5zdGFncmFtLmNvbS9pcHJpdGFtb2ZmaWNpYWwv&ntb=1)
+- **Controversy**: No
 
-- **International Recognition**: Pritam's music has gained international acclaim, even making it to the Billboard charts with tracks from various films.
-  - [Source: Hindustan Times](https://www.hindustantimes.com/)
+### 4. Title: Pritam - YouTube
+- **Publish Date**: 2026-03-27 21:42:40
+- **Summary**: The official YouTube channel of Pritam features his composed music and performances, popular among fans.
+- **Source**: [Link](https://www.bing.com/ck/a?!&&p=a51430d7c488acd5bdda60242256ec47af84da1db019df07813be0e50ae487b7JmltdHM9MTc3NDU2OTYwMA&ptn=3&ver=2&hsh=4&fclid=327e7505-b798-60c8-0462-622cb6eb6160&u=a1aHR0cHM6Ly93d3cueW91dHViZS5jb20vY2hhbm5lbC9VQ0Zyanpib2wyWnktRmFLYUNJS0lEVkE&ntb=1)
+- **Controversy**: No
 
-## Recent Work
-- **Latest Projects**: Pritam recently worked on the soundtrack for *Lal Singh Chaddha* (2022) starring Aamir Khan which received mixed reviews.
-  - [Source: The Indian Express](https://indianexpress.com/)
+### 5. Title: Pritam - Wikipedia
+- **Publish Date**: 2026-03-27 21:42:40
+- **Summary**: Pritam Chakraborty, known simply as Pritam, is a celebrated Indian composer recognized for his work in the film industry, winning multiple National Film Awards.
+- **Source**: [Link](https://www.bing.com/ck/a?!&&p=0edb29a64dea453bef952f47e82ffd65e8aecc3f9f79e118fd3fe621bdfb3f2dJmltdHM9MTc3NDU2OTYwMA&ptn=3&ver=2&hsh=4&fclid=327e7505-b798-60c8-0462-622cb6eb6160&u=a1aHR0cHM6Ly9lbi53aWtpcGVkaWEub3JnL3dpa2kvUHJpdGFt&ntb=1)
+- **Controversy**: No
 
-- **Upcoming Releases**: He is set to release music for the upcoming film *Pathaan*, expected to feature a strong soundtrack.
-  - [Source: Filmfare](https://www.filmfare.com/)
-
-## Negative Publicity and Controversies
-- **Accusations of Plagiarism**: Pritam has faced multiple allegations of copying music from various international artists. One recent controversy involved his track “Koode” from *Manmarziyaan* being compared to a song by an American artist.
-  - [Source: India Today](https://www.indiatoday.in/)
-
-- **Public Criticism**: Fans and critics have sometimes targeted him for his perceived reliance on remakes and adaptations rather than original compositions, a debate sparked after several of his tracks were noted for similarities to prior works.
-  - [Source: The Quint](https://www.thequint.com/)
-
-- **Social Media Backlash**: His response to controversies has sometimes been met with backlash on social media platforms, with mixed reactions from fans regarding his artistic integrity.
-  - [Source: Scroll.in](https://scroll.in/)
-
-In summary, Pritam continues to be a powerful figure in the Bollywood music scene, admired for his diverse compositions but also facing criticism over originality and controversies regarding his creative process.
+Overall, Pritam continues to maintain a strong presence in the Indian music scene with his recent activities and contributions to film music, although no controversies or negative publicity were noted in the articles reviewed.
