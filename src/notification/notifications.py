@@ -5,7 +5,7 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from config.settings import (
     SMTP_SERVER, SMTP_PORT, SMTP_EMAIL, SMTP_PASSWORD, 
-    NOTIFICATION_EMAIL, EMAIL_SUBJECT_PREFIX, 
+    NOTIFICATION_EMAILS, NOTIFICATION_EMAIL, EMAIL_SUBJECT_PREFIX, 
     MAX_EMAIL_RETRIES, EMAIL_RETRY_DELAY
 )
 
@@ -36,7 +36,7 @@ def push_notification(notification_message: str) -> str:
 
 def send_email_notification(summary: str) -> str:
     """
-    Send email notification with the summary. Includes retry logic.
+    Send email notification with the summary to all recipients. Includes retry logic.
     
     Args:
         summary (str): The article summary to send
@@ -46,7 +46,7 @@ def send_email_notification(summary: str) -> str:
     """
     
     # Check if email configuration is complete
-    if not SMTP_EMAIL or not SMTP_PASSWORD or not NOTIFICATION_EMAIL:
+    if not SMTP_EMAIL or not SMTP_PASSWORD or not NOTIFICATION_EMAILS:
         log_message = "[Email Notification] Email configuration incomplete. Summary logged instead:\n"
         print(log_message)
         print(summary[:500])
@@ -57,27 +57,46 @@ def send_email_notification(summary: str) -> str:
     html_body = _generate_html_email(summary)
     text_body = _generate_text_email(summary)
     
-    # Attempt to send with retries
-    for attempt in range(1, MAX_EMAIL_RETRIES + 1):
-        try:
-            print(f"\n[Email] Attempt {attempt}/{MAX_EMAIL_RETRIES} to send notification to {NOTIFICATION_EMAIL}...")
-            _send_smtp_email(subject, html_body, text_body)
-            return f"[Email Sent ✓] Successfully sent to {NOTIFICATION_EMAIL}"
-            
-        except Exception as e:
-            error_msg = str(e)
-            print(f"[Email Error - Attempt {attempt}] {error_msg}")
-            
-            if attempt < MAX_EMAIL_RETRIES:
-                print(f"[Email] Retrying in {EMAIL_RETRY_DELAY} seconds...")
-                time.sleep(EMAIL_RETRY_DELAY)
-            else:
-                return f"[Email Failed ✗] After {MAX_EMAIL_RETRIES} attempts: {error_msg}"
+    # DEBUG: Show what's being sent
+    print(f"\n[Email Debug] Email Subject: {subject}")
+    print(f"[Email Debug] HTML Body Preview (first 300 chars): {html_body[:300]}...")
+    print(f"[Email Debug] Recipients: {', '.join(NOTIFICATION_EMAILS)}")
     
-    return "[Email Failed ✗] Unexpected error in retry loop"
+    # Send to all recipients
+    failed_recipients = []
+    successful_recipients = []
+    
+    for recipient_email in NOTIFICATION_EMAILS:
+        # Attempt to send with retries
+        for attempt in range(1, MAX_EMAIL_RETRIES + 1):
+            try:
+                print(f"\n[Email] Attempt {attempt}/{MAX_EMAIL_RETRIES} to send notification to {recipient_email}...")
+                _send_smtp_email(subject, html_body, text_body, recipient_email)
+                print(f"[Email] ✓ Successfully connected, authenticated, and sent to {recipient_email}")
+                successful_recipients.append(recipient_email)
+                break
+                
+            except Exception as e:
+                error_msg = str(e)
+                print(f"[Email Error - Attempt {attempt}] {error_msg}")
+                
+                if attempt < MAX_EMAIL_RETRIES:
+                    print(f"[Email] Retrying in {EMAIL_RETRY_DELAY} seconds...")
+                    time.sleep(EMAIL_RETRY_DELAY)
+                else:
+                    failed_recipients.append(recipient_email)
+    
+    # Summarize results
+    if successful_recipients:
+        summary_msg = f"[Email Sent ✓] Successfully sent to {len(successful_recipients)} recipient(s): {', '.join(successful_recipients)}"
+        if failed_recipients:
+            summary_msg += f" | Failed: {', '.join(failed_recipients)}"
+        return summary_msg
+    else:
+        return f"[Email Failed ✗] Failed to send to all {len(NOTIFICATION_EMAILS)} recipient(s)"
 
 
-def _send_smtp_email(subject: str, html_body: str, text_body: str) -> None:
+def _send_smtp_email(subject: str, html_body: str, text_body: str, recipient_email: str) -> None:
     """
     Send email via SMTP. Supports Gmail, Outlook, and custom SMTP servers.
     
@@ -85,6 +104,7 @@ def _send_smtp_email(subject: str, html_body: str, text_body: str) -> None:
         subject (str): Email subject
         html_body (str): HTML formatted email body
         text_body (str): Plain text email body
+        recipient_email (str): Recipient email address
         
     Raises:
         Exception: If SMTP connection or sending fails
@@ -92,13 +112,13 @@ def _send_smtp_email(subject: str, html_body: str, text_body: str) -> None:
     
     print(f"[Email Debug] Using SMTP: {SMTP_SERVER}:{SMTP_PORT}")
     print(f"[Email Debug] From: {SMTP_EMAIL}")
-    print(f"[Email Debug] To: {NOTIFICATION_EMAIL}")
+    print(f"[Email Debug] To: {recipient_email}")
     
     # Create message with multipart (text + HTML)
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = SMTP_EMAIL
-    msg["To"] = NOTIFICATION_EMAIL
+    msg["To"] = recipient_email
     
     # Attach text and HTML versions
     part_text = MIMEText(text_body, "plain")
@@ -117,8 +137,8 @@ def _send_smtp_email(subject: str, html_body: str, text_body: str) -> None:
             print(f"[Email Debug] Logging in with: {SMTP_EMAIL}")
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             
-            print(f"[Email Debug] Sending email...")
-            result = server.sendmail(SMTP_EMAIL, NOTIFICATION_EMAIL, msg.as_string())
+            print(f"[Email Debug] Sending email to {recipient_email}...")
+            result = server.sendmail(SMTP_EMAIL, recipient_email, msg.as_string())
             print(f"[Email Debug] Send result: {result}")
         
         print(f"[Email] ✓ Successfully connected, authenticated, and sent to {NOTIFICATION_EMAIL}")
@@ -155,7 +175,7 @@ SUMMARY:
 
 ---
 This is an automated notification from Ping Bot.
-Last 96 hours of coverage from multiple sources (DuckDuckGo, Bing, Reddit)
+Last 201 hours of coverage from multiple sources (DuckDuckGo, Bing, Reddit)
 """
 
 
@@ -262,7 +282,7 @@ def _generate_html_email(summary: str) -> str:
                 
                 <div class="meta">
                     <div class="meta-item"><strong>Generated:</strong> {timestamp}</div>
-                    <div class="meta-item"><strong>Period:</strong> Last 96 hours</div>
+                    <div class="meta-item"><strong>Period:</strong> Last 201 hours</div>
                     <div class="meta-item"><strong>Articles Found:</strong> {article_count}</div>
                     {'<div class="meta-item"><strong style="color: #d32f2f;">⚠️ Contains Controversial Content</strong></div>' if has_controversy else ''}
                 </div>

@@ -26,41 +26,35 @@ summariser_llm_model = ChatOpenAI(model="gpt-4o-mini", api_key=openai_api_key)
 
 # Search Keywords
 # Search Keywords - Comprehensive tracking of Pritam, his songs, albums, movies, and controversies
+# OPTIMIZED: Core keywords only to speed up searches
 search_keywords = [
     # Direct Pritam references
     "Pritam",
     "Pritam Chakraborty",
     "Pritam music director",
-    "Pritam composer",
     
-    # Albums
-    "Pritam Albums",
-    
-    # Movies/Soundtracks
-    "Pritam Movies",
-    "Pritam film scores",
-    "Pritam Bollywood",
-    
-    # Famous Songs (even if Pritam's name not mentioned, these are his signature works)
+    # Pritam's most famous songs
     "Tu Hi Disda",
     
     # Controversies and news
-    "Pritam Controversies",
-    "pritam music director latest article",
-    "Pritam dispute",
-    "Pritam legal",
+    "Pritam controversy",
 ]
 
-# Search Domains
+# Search Domains - Expand to cover all major entertainment sites
 search_domains = [
-    "https://www.bombaytimes.com/",
-    # "https://www.imdb.com/",
-    "https://www.zoomtventertainment.com/",
-    "https://www.filmfare.com/"
+    "filmfare.com",
+    "thehindu.com",
+    "deccanchronicle.com",
+    "bollywoodhungama.com",
+    "imdb.com",
+    "zoomtventertainment.com",
+    "indiatoday.in",
+    "hindustantimes.com",
+    "mumbaimirror.com",
 ]
 
 # Search top k results
-top_k = 5
+top_k = 20
 
 # Path for all MD files related to the task
 task_data_path = "data"
@@ -77,7 +71,14 @@ SMTP_EMAIL = os.getenv("SMTP_EMAIL")  # Sender email (required)
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")  # App password (required)
 
 # Notification Configuration
-NOTIFICATION_EMAIL = os.getenv("NOTIFICATION_EMAIL")  # Recipient email (required)
+NOTIFICATION_EMAIL_RAW = os.getenv("NOTIFICATION_EMAIL")  # Can be comma-separated list
+# Parse comma-separated emails into a list
+NOTIFICATION_EMAILS = [
+    email.strip() 
+    for email in NOTIFICATION_EMAIL_RAW.split(',') 
+    if email.strip()
+] if NOTIFICATION_EMAIL_RAW else []
+NOTIFICATION_EMAIL = NOTIFICATION_EMAILS[0] if NOTIFICATION_EMAILS else None  # Primary email for backward compatibility
 EMAIL_SUBJECT_PREFIX = "🎬 Pritam News Alert"
 
 # Email Retry Configuration
@@ -89,16 +90,16 @@ print(f"  - SMTP_SERVER: {SMTP_SERVER}")
 print(f"  - SMTP_PORT: {SMTP_PORT}")
 print(f"  - SMTP_EMAIL loaded: {bool(SMTP_EMAIL)}")
 print(f"  - SMTP_PASSWORD loaded: {bool(SMTP_PASSWORD)}")
-print(f"  - NOTIFICATION_EMAIL loaded: {bool(NOTIFICATION_EMAIL)}")
+print(f"  - NOTIFICATION_EMAILS: {NOTIFICATION_EMAILS}")
 
 # Validate email configuration
-if not SMTP_EMAIL or not SMTP_PASSWORD or not NOTIFICATION_EMAIL:
+if not SMTP_EMAIL or not SMTP_PASSWORD or not NOTIFICATION_EMAILS:
     print("\n[ERROR] Email credentials NOT fully configured!")
-    print(f"  Missing: {', '.join([x for x, v in [('SMTP_EMAIL', SMTP_EMAIL), ('SMTP_PASSWORD', SMTP_PASSWORD), ('NOTIFICATION_EMAIL', NOTIFICATION_EMAIL)] if not v])}")
-    print("\n[HELP] Please ensure your .env file exists and contains:")
+    print(f"  Missing: {', '.join([x for x, v in [('SMTP_EMAIL', SMTP_EMAIL), ('SMTP_PASSWORD', SMTP_PASSWORD), ('NOTIFICATION_EMAILS', NOTIFICATION_EMAILS)] if not v])}")
+    print("\n[HELP] Please ensure your .env file contains:")
     print("  SMTP_EMAIL=mukherjeesagnik2@gmail.com")
     print("  SMTP_PASSWORD=your-16-char-app-password")
-    print("  NOTIFICATION_EMAIL=mukherjeesagnik2@gmail.com")
+    print("  NOTIFICATION_EMAIL=email1@gmail.com,email2@gmail.com")
     print("\nOr run from the ping-bot-net directory where .env is located!")
 
 # ==================== SCHEDULER SETTINGS ====================
@@ -110,7 +111,7 @@ SCHEDULE_INTERVAL_HOURS = int(os.getenv("SCHEDULE_INTERVAL_HOURS", "3"))  # Defa
 SCHEDULER_TIMEZONE = os.getenv("SCHEDULER_TIMEZONE", "UTC")
 
 # Database cleanup interval (in hours)
-DB_CLEANUP_INTERVAL_HOURS = 96  # Run cleanup every 96 hours
+DB_CLEANUP_INTERVAL_HOURS = 201  # Run cleanup every 201 hours
 
 # Retain data for N days
 DATA_RETENTION_DAYS = 30

@@ -92,16 +92,19 @@ class PingBotDB:
         return result is not None
     
     def has_been_sent(self, url: str, title: str, recipient_email: str) -> bool:
-        """Check if this article has already been sent to this recipient"""
-        article_hash = self.get_article_hash(url, title)
+        """Check if this article URL has already been sent to this recipient - URL-based check only"""
+        # Normalize URL for case-insensitive comparison
+        normalized_url = url.strip().rstrip('/').lower()
+        
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
+        # Check if URL exists in sent_emails table
         cursor.execute("""
             SELECT se.id FROM sent_emails se
             JOIN articles a ON se.article_id = a.id
-            WHERE a.article_hash = ? AND se.recipient_email = ?
-        """, (article_hash, recipient_email))
+            WHERE LOWER(TRIM(a.url, '/')) = ? AND se.recipient_email = ?
+        """, (normalized_url, recipient_email))
         
         result = cursor.fetchone()
         conn.close()
@@ -157,7 +160,7 @@ class PingBotDB:
         finally:
             conn.close()
     
-    def get_unsent_articles(self, recipient_email: str, hours: int = 96) -> List[Dict]:
+    def get_unsent_articles(self, recipient_email: str, hours: int = 201) -> List[Dict]:
         """Get articles from last N hours that haven't been sent to recipient"""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
@@ -180,7 +183,7 @@ class PingBotDB:
         
         return results
     
-    def get_recent_articles(self, hours: int = 96, limit: int = 10) -> List[Dict]:
+    def get_recent_articles(self, hours: int = 201, limit: int = 10) -> List[Dict]:
         """Get recent articles (for display/summary)"""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
@@ -216,7 +219,7 @@ class PingBotDB:
         conn.close()
         print(f"[Database] Run logged: {articles_found} found, {articles_sent} sent, {duplicates_skipped} duplicates")
     
-    def get_run_stats(self, hours: int = 96) -> Dict:
+    def get_run_stats(self, hours: int = 201) -> Dict:
         """Get execution statistics for the last N hours"""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row

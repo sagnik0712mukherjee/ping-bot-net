@@ -5,7 +5,7 @@ from datetime import datetime
 from src.agents.super_agent import build_crew
 from src.notification.notifications import push_notification
 from src.database import db
-from config.settings import NOTIFICATION_EMAIL
+from config.settings import NOTIFICATION_EMAIL, NOTIFICATION_EMAILS
 
 def application_init():
     """
@@ -24,8 +24,8 @@ def application_init():
         
         # Check if no articles were found
         if "NO_ARTICLES_FOUND" in crew_result_str:
-            print(f"\n[APP] No articles found in the last 96 hours. Sending empty notification for testing...")
-            result = push_notification("[INFO] No new articles found about Pritam in the last 96 hours.")
+            print(f"\n[APP] No articles found in the last 201 hours. Sending empty notification for testing...")
+            result = push_notification("[INFO] No new articles found about Pritam in the last 201 hours.")
             db.log_run(articles_found=0, articles_sent=0, duplicates_skipped=0, status="no_content")
             return "[Result] No articles found - Email sent (testing mode)"
         
@@ -41,6 +41,8 @@ def application_init():
             print(f"[APP] Processing notification for {articles_sent} new articles...")
             result = push_notification(crew_result_str)
             
+            print(f"\n[APP] Push notification result: {result}")
+            
             # Only mark as sent if email was successful
             if "Email Sent" in str(result):
                 for url, title in article_urls:
@@ -53,9 +55,11 @@ def application_init():
                         is_controversial='⚠️' in title or 'controversy' in title.lower()
                     )
                     if article_id:
-                        db.mark_email_sent(article_id, NOTIFICATION_EMAIL)
+                        # Mark as sent for ALL recipients
+                        for recipient_email in NOTIFICATION_EMAILS:
+                            db.mark_email_sent(article_id, recipient_email)
                 
-                print(f"[APP] ✓ Email sent successfully, marked {articles_sent} articles as sent")
+                print(f"[APP] ✓ Email sent successfully to {len(NOTIFICATION_EMAILS)} recipient(s), marked {articles_sent} articles as sent for all recipients")
                 db.log_run(
                     articles_found=articles_found,
                     articles_sent=articles_sent,
@@ -74,6 +78,7 @@ def application_init():
         else:
             print(f"\n[APP] All {articles_found} articles already sent. Sending update email (testing mode)...")
             result = push_notification(f"[INFO] All {articles_found} articles about Pritam were already sent to you previously.")
+            print(f"[APP] Testing email result: {result}")
             db.log_run(
                 articles_found=articles_found,
                 articles_sent=0,
@@ -101,29 +106,46 @@ def _process_articles_for_sending(summary: str) -> tuple:
     Returns tuple of (total_articles_found, list_of_new_articles)
     where new_articles = [(url, title), ...]
     """
-    # Extract URLs from summary (simplified - looks for http/https patterns)
-    lines = summary.split('\n')
+    import re
+    
+    # Extract URLs from markdown format: [Title](URL) and also plain URLs
+    url_pattern = r'\[(.*?)\]\((https?://[^\)]+)\)|(?:^|\s)(https?://\S+)'
+    matches = re.findall(url_pattern, summary)
+    
     total_articles = 0
     new_articles = []
+    seen_urls = set()  # Prevent duplicates within this run
     
-    for line in lines:
-        if 'http://' in line or 'https://' in line:
-            # Extract URL
-            parts = line.split()
-            for part in parts:
-                if part.startswith('http://') or part.startswith('https://'):
-                    url = part.rstrip('')
-                    
-                    # Try to extract title from nearby text
-                    title = line[:100]  # Use first 100 chars of line as title
-                    
-                    total_articles += 1
-                    
-                    # Check if article already sent to this recipient
-                    if not db.has_been_sent(url, title, NOTIFICATION_EMAIL):
-                        new_articles.append((url, title))
-                    break  # Only process first URL per line
+    for match in matches:
+        # match is either (title, url) from markdown or ('', '', url) from plain
+        if match[1]:  # Markdown format: [title](url)
+            title = match[0] if match[0] else "Article"
+            url = match[1]
+        else:  # Plain URL format
+            title = "Article"
+            url = match[2] if len(match) > 2 else ""
+        
+        if not url or url in seen_urls:
+            continue
+        
+        # Clean URL
+        url = url.rstrip('.,;:)')
+        seen_urls.add(url)
+        
+        total_articles += 1
+        
+        # Debug logging
+        print(f"[DEDUP] Checking URL: {url[:80]}...")
+        print(f"[DEDUP] Title: {title[:60]}...")
+        
+        # Check if article already sent to this recipient
+        if not db.has_been_sent(url, title, NOTIFICATION_EMAIL):
+            new_articles.append((url, title))
+            print(f"[DEDUP] ✓ NEW article - will send")
+        else:
+            print(f"[DEDUP] ✗ DUPLICATE (already sent)")
     
+    print(f"\n[DEDUP] Summary: Total={total_articles}, New={len(new_articles)}, Duplicates={total_articles - len(new_articles)}\n")
     return total_articles, new_articles
 
 

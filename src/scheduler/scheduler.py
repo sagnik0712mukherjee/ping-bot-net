@@ -130,7 +130,7 @@ def _run_pritam_monitoring():
         logger.info(f"[Job] Monitoring completed: {result}")
         
         # Log database stats
-        stats = db.get_run_stats(hours=96)
+        stats = db.get_run_stats(hours=201)
         logger.info(f"[Job] Stats (24h): {stats}")
         
     except Exception as e:
