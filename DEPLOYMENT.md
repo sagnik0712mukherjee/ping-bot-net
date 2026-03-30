@@ -69,11 +69,13 @@ GitHub Actions needs your sensitive API keys. We'll store them securely as "Secr
 
 ### **Step 3: Update Workflow to Use Secrets** (Already Done! ✅)
 
-The workflow file (`.github/workflows/pritam-monitor.yml`) already references secrets:
+The workflow file (`.github/workflows/pritam-news-alerts-bot.yml`) already references secrets:
 
 ```yaml
 env:
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+  GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
 ```
 
 ---
@@ -127,7 +129,7 @@ After each run, logs are saved as **Artifacts**.
 The workflow auto-generates a status badge. Add to your `README.md`:
 
 ```markdown
-![Pritam Monitor Status](https://github.com/YOUR_USERNAME/ping-bot-net/actions/workflows/pritam-monitor.yml/badge.svg)
+![Pritam News Alerts Bot Status](https://github.com/YOUR_USERNAME/ping-bot-net/actions/workflows/pritam-news-alerts-bot.yml/badge.svg)
 ```
 
 Shows: 🟢 **Passing** or 🔴 **Failing**
@@ -138,12 +140,13 @@ Each run is numbered:
 - Run #1, Run #2, Run #3... (visible in Actions tab)
 - Shows: Status (✅/❌), timestamp, logs
 
-#### **Persistent State:**
+#### **Persistent State (Local):**
 
-The `seen_urls.json` file is automatically:
-- ✅ Committed back to the repo after each run
+The `seen_urls.json` file:
+- ✅ Lives on your machine locally
+- ✅ Persists between runs automatically
 - ✅ Prevents duplicate emails across runs
-- ✅ Preserved in git history
+- ⚠️ **NOT committed to git** — stays local only (fresh checkout every time, local state preserved)
 
 ---
 
@@ -157,7 +160,7 @@ schedule:
 
 **To change schedule:**
 
-Edit `.github/workflows/pritam-monitor.yml`:
+Edit `.github/workflows/pritam-news-alerts-bot.yml`:
 
 | Schedule | Cron |
 |----------|------|
@@ -174,7 +177,7 @@ Edit `.github/workflows/pritam-monitor.yml`:
 Workflow supports manual execution:
 
 1. Go to **Actions** tab
-2. Select **🎵 Pritam Monitor Bot** workflow
+2. Select **🎵 Pritam News Alerts Bot** workflow
 3. Click **Run workflow**
 4. Logs update in real-time
 
@@ -195,8 +198,8 @@ Workflow supports manual execution:
 |-------|-----|
 | `Secret not found` | Add missing secret in Settings → Secrets |
 | `Connection timeout` | API is slow/down - will retry next hour |
-| `Email failed` | Check SMTP credentials in settings.py |
-| `Git push failed` | Ensure `GITHUB_TOKEN` has write access |
+| `Email failed` | Check SMTP credentials & GMAIL_APP_PASSWORD secret |
+| `OPENAI_API_KEY` missing | Add OPENAI_API_KEY to GitHub Secrets |
 
 ### **❓ No emails received?**
 

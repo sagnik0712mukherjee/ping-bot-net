@@ -79,9 +79,9 @@ This stores your sensitive API keys securely. GitHub Actions will access them.
 - **Value:** Your OpenAI API key (from platform.openai.com/api-keys)
 - Click **Add secret**
 
-### Add Secret 2: GMAIL_APP_PASSWORD (Optional but Recommended)
+### **Add Secret 2: GMAIL_APP_PASSWORD (Required for Email)
 
-**Why?** More secure than storing password in settings.py
+**Why?** Secure way to pass Gmail credentials to GitHub Actions
 
 1. Go to **Google Account** → myaccount.google.com
 2. **Security** (left) → **2-Step Verification** (enable if not done)
@@ -105,22 +105,18 @@ This stores your sensitive API keys securely. GitHub Actions will access them.
 
 The GitHub Actions workflow file is already created at:
 ```
-.github/workflows/pritam-monitor.yml
+.github/workflows/pritam-news-alerts-bot.yml
 ```
 
-**If you don't see it in your repo:**
-
-1. Create the directory: `.github/workflows/`
-2. Create file `pritam-monitor.yml`
-3. Copy paste the content from [.github/workflows/pritam-monitor.yml](.github/workflows/pritam-monitor.yml)
+✅ **Already pushed!** No action needed.
 
 ---
 
 ## **STEP 5: Enable GitHub Actions**
 
 1. On your repo page, click **Actions** tab
-2. You should see the workflow: **🎵 Pritam Monitor Bot**
-3. If not visible yet, push the .github/workflows/pritam-monitor.yml file to repo
+2. You should see the workflow: **🎵 Pritam News Alerts Bot**
+3. It should be visible now (already pushed)
 
 ---
 
@@ -147,10 +143,8 @@ Before the schedule starts, test it manually.
    - ✅ Checkout code
    - ✅ Setup Python
    - ✅ Install dependencies
-   - ✅ Run Pritam Monitor ← **Main step**
-   - ✅ Save logs
-   - ✅ Commit state
-   - ✅ Push changes
+   - ✅ Run Pritam News Alerts Bot ← **Main step**
+   - ✅ Save logs as artifact
 
 **Expected output in logs:**
 
@@ -166,7 +160,7 @@ Lookback: 2h | Keywords: 12
 ... (more sources)
 [AI Filter] ✅ 2/4 articles passed.
 [Email] ✅ Sent to 2 recipient(s).
-✅ Pritam Monitor completed at 2026-03-31 19:23:48 UTC
+✅ Pritam News Alerts Bot completed at 2026-03-31 19:23:48 UTC
 ```
 
 ---
@@ -189,14 +183,16 @@ Lookback: 2h | Keywords: 12
 
 ---
 
-## **STEP 9: Verify Dedup State**
+## **STEP 9: Verify Bot Functionality**
 
-1. Go to your GitHub repo
-2. You should see new/updated files:
-   - ✅ `seen_urls.json` (updated)
-   - ✅ Recent commit message with `🔄 Update dedup cache - Run #1`
+**The bot is working when you see:**
 
-This means the bot is working and persisting state!
+1. ✅ Logs show successful articles fetched
+2. ✅ AI Filter result visible in logs
+3. ✅ Email sent confirmation in logs
+4. ✅ Next run happens in 1 hour (automatic)
+
+**Note:** `seen_urls.json` stays LOCAL on your machine — persists between runs but never pushed to GitHub.
 
 ---
 
@@ -217,10 +213,10 @@ This means the bot is working and persisting state!
 
 1. Go to repo → **Actions** tab
 2. Click **🎵 Pritam News Alerts Bot** (left sidebar)
-3. See all past runs with:
+3. See all past and upcoming runs with:
    - ✅/❌ Status (green = success, red = failed)
-   - ⏱️ Duration
-   - 🕐 Timestamp
+   - ⏱️ Duration (~30-60 seconds)
+   - 🕐 Timestamp (UTC)
 
 ### **Download Logs:**
 
@@ -242,7 +238,7 @@ Add to your `README.md`:
 
 **Want to run every 4 hours instead of 1 hour?**
 
-1. Open `.github/workflows/pritam-monitor.yml` (in your repo)
+1. Open `.github/workflows/pritam-news-alerts-bot.yml` (in your repo)
 2. Find this section:
    ```yaml
    schedule:

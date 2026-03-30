@@ -1,10 +1,22 @@
 # 🎵 Pritam News Alerts Bot
 
-An automated monitoring bot that fetches **all latest mentions** of Pritam (the composer) from the internet, filters them using **GPT-4.1** to remove false positives, and delivers a clean HTML digest email to a list of recipients.
+[![Pritam News Alerts Bot](https://img.shields.io/badge/Status-Active-brightgreen)](../../actions/workflows/pritam-news-alerts-bot.yml)
+
+An automated monitoring bot that fetches **all latest mentions** of Pritam (the composer) from 14+ news sources, filters them using **GPT-4.1** to remove false positives, and delivers a clean HTML digest email. 
+
+**Status:** ✅ Running on GitHub Actions (every hour, FREE tier) | 📊 [View Dashboard](../../actions/workflows/pritam-news-alerts-bot.yml) | 📧 [Email Format](examples/sample_email.html)
 
 ---
 
-## 📁 Project Structure
+## � **QUICK START: GitHub Actions Deployment (Recommended)**
+
+**Already deployed on GitHub Actions?** Just check your email inbox and the [Actions Dashboard](../../actions/workflows/pritam-news-alerts-bot.yml)! 
+
+The bot runs automatically **every hour** — no setup needed. See [GITHUB_DEPLOYMENT_STEPS.md](GITHUB_DEPLOYMENT_STEPS.md) for details.
+
+---
+
+## �📁 Project Structure
 
 ```
 pritam_bot/
@@ -22,16 +34,24 @@ pritam_bot/
 
 ## ⚙️ Setup
 
-### 1. Install dependencies
+### Local Development (Optional)
+
+For testing locally, install dependencies and configure settings:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure `settings.py`
-Everything lives there. Key things to fill in:
+### Configuration
+
+Edit `config/settings.py`:
+
+**On GitHub Actions:** API keys are passed via secrets (see [GITHUB_DEPLOYMENT_STEPS.md](GITHUB_DEPLOYMENT_STEPS.md)) — automatically read as environment variables.
+
+**Locally:** You can set environment variables or edit `settings.py` directly:
 - `OPENAI_API_KEY` (required for GPT-4.1 AI filtering)
 - `NEWSAPI_KEY` and `GNEWS_KEY` (get free keys below)
-- `GOOGLE_ALERTS_RSS_URLS` (set up below)
+- `GOOGLE_ALERTS_RSS_URLS` (set up RSS feeds)
 - `SMTP_USERNAME`, `SMTP_PASSWORD`, `RECIPIENT_EMAILS`
 
 ---
@@ -113,11 +133,6 @@ To enable/disable AI filtering, toggle `AI_FILTER_ENABLED` in `settings.py`.
 
 ---
 
-## 👤 Author
-
-**Sagnik Mukherjee**  
-GitHub: [github.com/sagnik0712mukherjee](https://github.com/sagnik0712mukherjee)
-
 # Run on a loop every N hours (set RUN_EVERY_N_HOURS in settings.py)
 python main.py --schedule
 
@@ -160,3 +175,8 @@ The bot tracks every sent URL in `seen_urls.json`. Even if the same article appe
 To reset (re-send everything fresh): just delete `seen_urls.json`.
 
 ---
+
+## 👤 Author
+
+**Sagnik Mukherjee**  
+GitHub: [github.com/sagnik0712mukherjee](https://github.com/sagnik0712mukherjee)

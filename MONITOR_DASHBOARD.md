@@ -8,7 +8,7 @@
 
 | Link | Purpose |
 |------|---------|
-| [📊 All Runs](../../actions/workflows/pritam-monitor.yml) | View execution history of Pritam News Alerts Bot |
+| [📊 All Runs](../../actions/workflows/pritam-news-alerts-bot.yml) | View execution history of Pritam News Alerts Bot |
 | [🔑 Secrets](../../settings/secrets/actions) | Manage API keys |
 | [📝 Logs](../../actions?query=workflow%3A%22Pritam+Monitor+Bot%22) | Download detailed logs |
 | [⚙️ Settings](../../settings) | Configure workflow |
@@ -51,8 +51,8 @@
 
 ✅ **Output:**
 - 📧 Email sent to recipients
-- 📋 Logs saved to artifacts
-- 💾 State persisted to git (seen_urls.json)
+- 📋 Logs saved to artifacts (30-day retention)
+- 💾 State persisted locally (seen_urls.json)
 
 ---
 
@@ -114,5 +114,6 @@ To track more metrics, consider:
 
 ---
 
-**Last Updated:** [Auto-updated by workflow]
-**Next Run:** Check workflow schedule in [pranit-monitor.yml](.github/workflows/pritam-monitor.yml)
+**Schedule:** Every hour (cron: `0 * * * *` UTC)
+**Next Run:** Check [Actions](../../actions/workflows/pritam-news-alerts-bot.yml) tab for scheduled runs
+**Status:** Real-time via [workflow logs](../../actions)

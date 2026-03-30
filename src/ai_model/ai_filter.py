@@ -22,6 +22,15 @@ from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
+# ──────────────────────────────────────────────────────────────────────────
+#  Global token tracking (reset at start of each run)
+# ──────────────────────────────────────────────────────────────────────────
+_token_usage = {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cost_usd": 0.0,
+}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Prompt — read from settings if overridden, else use this default
@@ -53,6 +62,25 @@ def _is_enabled() -> bool:
     Returns True if AI_FILTER_ENABLED is set in settings, defaults to True.
     """
     return getattr(settings, "AI_FILTER_ENABLED", True)
+
+
+def reset_token_usage():
+    """Reset token tracking for a new run."""
+    global _token_usage
+    _token_usage = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+    }
+
+
+def get_token_usage() -> dict:
+    """Get current token usage stats.
+    
+    Returns:
+        Dictionary with keys: input_tokens, output_tokens, cost_usd
+    """
+    return _token_usage.copy()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -125,6 +153,20 @@ def apply_filter(articles: list[dict]) -> list[dict]:
                 max_tokens      = 60,   # 15 articles × 4 chars ("YES\n") = well under 60
                 temperature     = 0,    # deterministic — no creativity needed
             )
+            
+            # Track token usage
+            input_tokens = resp.usage.prompt_tokens
+            output_tokens = resp.usage.completion_tokens
+            _token_usage["input_tokens"] += input_tokens
+            _token_usage["output_tokens"] += output_tokens
+            
+            # Calculate cost for this batch
+            batch_cost = (
+                input_tokens * settings.OPENAI_INPUT_TOKEN_COST +
+                output_tokens * settings.OPENAI_OUTPUT_TOKEN_COST
+            )
+            _token_usage["cost_usd"] += batch_cost
+            
             raw_answers = resp.choices[0].message.content.strip().upper()
             answers = [
                 line.strip()

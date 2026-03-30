@@ -40,6 +40,9 @@ def run_once(dry_run: bool = False):
     Args:
         dry_run: If True, print articles and preview email without sending.
     """
+    exec_start = time.time()  # Track execution time
+    ai_filter.reset_token_usage()  # Reset token tracking
+    
     logger.info("=" * 60)
     logger.info("Pritam News Alerts — Starting run")
     logger.info(f"Lookback: {settings.LOOKBACK_M_HOURS}h | Keywords: {len(settings.KEYWORDS)}")
@@ -76,7 +79,15 @@ def run_once(dry_run: bool = False):
     new_articles.sort(key=_sort_key, reverse=True)
 
     # 6. Build email
-    html    = build_html_email(new_articles, settings.LOOKBACK_M_HOURS)
+    exec_elapsed = time.time() - exec_start  # Calculate elapsed time
+    token_usage = ai_filter.get_token_usage()  # Get token cost info
+    
+    html    = build_html_email(
+        new_articles, 
+        settings.LOOKBACK_M_HOURS,
+        exec_time=exec_elapsed,
+        token_usage=token_usage
+    )
     subject = settings.EMAIL_SUBJECT.format(
         date=datetime.now(timezone.utc).strftime("%b %d, %Y")
     )

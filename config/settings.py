@@ -6,7 +6,7 @@
 import os
 # ── Schedule ──────────────────────────────────────────────────
 RUN_EVERY_N_HOURS = 1       # How often the bot runs (hours)
-LOOKBACK_M_HOURS  = 2       # How far back to look for content (hours)
+LOOKBACK_M_HOURS  = 3       # How far back to look for content (hours)
 
 # ── Keywords ──────────────────────────────────────────────────
 KEYWORDS = [
@@ -37,6 +37,12 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # OpenAI Model
 OPENAI_MODEL = "gpt-4.1"
+
+# ── GPT-4.1 Token Pricing (for cost tracking) ────────────────────────────────
+# As of March 2025: $0.003 per 1K input tokens, $0.006 per 1K output tokens
+# Read from env vars (so you can change without code edit)
+OPENAI_INPUT_TOKEN_COST = float(os.getenv("OPENAI_INPUT_TOKEN_COST", "0.000003"))   # per token (div 1000)
+OPENAI_OUTPUT_TOKEN_COST = float(os.getenv("OPENAI_OUTPUT_TOKEN_COST", "0.000006"))  # per token (div 1000)
 
 # Prompt for OpenAI — dynamically generated from KEYWORDS
 def build_ai_filter_prompt() -> str:

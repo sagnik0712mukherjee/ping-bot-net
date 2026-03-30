@@ -80,19 +80,23 @@ def _fmt_date(iso_str: str) -> str:
 
 # ── HTML builder ──────────────────────────────────────────────
 
-def build_html_email(articles: list[dict], lookback_hours: int) -> str:
+def build_html_email(articles: list[dict], lookback_hours: int, exec_time: float = 0.0, token_usage: dict = None) -> str:
     """Build a styled HTML email from a list of articles.
     
     Creates a professional HTML email digest with article cards, source breakdown,
-    and formatted styling in IST timezone.
+    and formatted styling in IST timezone. Includes execution time and OpenAI cost tracking.
     
     Args:
         articles: List of article dictionaries with keys: title, url, source, excerpt, published_at.
         lookback_hours: Number of hours this batch covers (for display).
+        exec_time: Execution time in seconds (for display).
+        token_usage: Dictionary with keys: input_tokens, output_tokens, cost_usd.
         
     Returns:
         Complete HTML email as a string.
     """
+    if token_usage is None:
+        token_usage = {"input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0}
     ist = timezone(timedelta(hours=5, minutes=30))
     now_str = datetime.now(ist).strftime("%B %d, %Y at %I:%M %p IST")
     count   = len(articles)
@@ -244,6 +248,7 @@ def build_html_email(articles: list[dict], lookback_hours: int) -> str:
               Reddit · TOI · Filmfare · Zoom · Pinkvilla ·
               Hungama · NDTV · IMDB<br>
               <span style="color:#aaa;">
+                Execution: {exec_time:.1f}s · OpenAI: ${token_usage['cost_usd']:.6f} ({token_usage['input_tokens']} input + {token_usage['output_tokens']} output tokens)<br>
                 To unsubscribe, remove your email from settings.py
               </span>
             </p>
