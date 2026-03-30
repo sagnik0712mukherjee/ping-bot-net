@@ -1,5 +1,5 @@
 """
-ai_filter.py  —  GPT-4.1 relevance filter for Pritam Monitor.
+ai_filter.py  —  GPT-4.1 relevance filter for Pritam News Alerts.
 
 Called by main.py AFTER fetch_all() + dedup.
 Takes raw articles, returns only those genuinely about Pritam Chakraborty.

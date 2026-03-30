@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ═══════════════════════════════════════════════════════════════
-#  main.py  —  Pritam Monitor Bot
+#  main.py  —  Pritam News Alerts Bot
 #
 #  Usage:
 #    python main.py               run once, send email if new articles
@@ -41,7 +41,7 @@ def run_once(dry_run: bool = False):
         dry_run: If True, print articles and preview email without sending.
     """
     logger.info("=" * 60)
-    logger.info("Pritam Monitor — Starting run")
+    logger.info("Pritam News Alerts — Starting run")
     logger.info(f"Lookback: {settings.LOOKBACK_M_HOURS}h | Keywords: {len(settings.KEYWORDS)}")
     logger.info("=" * 60)
 
@@ -129,7 +129,7 @@ def run_scheduled():
 # ── Entry point ───────────────────────────────────────────────
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Pritam Monitor Bot")
+    parser = argparse.ArgumentParser(description="Pritam News Alerts Bot")
     parser.add_argument(
         "--schedule", action="store_true",
         help="Run on a loop every N hours (set in settings.py)."

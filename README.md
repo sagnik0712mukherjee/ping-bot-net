@@ -1,4 +1,4 @@
-# 🎵 Pritam Monitor Bot
+# 🎵 Pritam News Alerts Bot
 
 An automated monitoring bot that fetches **all latest mentions** of Pritam (the composer) from the internet, filters them using **GPT-4.1** to remove false positives, and delivers a clean HTML digest email to a list of recipients.
 

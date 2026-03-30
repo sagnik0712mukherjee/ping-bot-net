@@ -143,8 +143,8 @@ SMTP_HOST     = "smtp.gmail.com"
 SMTP_PORT     = 587
 SMTP_USERNAME = "mukherjeesagnik2@gmail.com"
 SMTP_PASSWORD = "lbrlqrhvgyflfjdh"
-EMAIL_FROM    = "Pritam Monitor <mukherjeesagnik2@gmail.com>"
-EMAIL_SUBJECT = "🎵 Pritam Monitor — Latest Buzz [{date}]"
+EMAIL_FROM    = "Pritam News Alerts <mukherjeesagnik2@gmail.com>"
+EMAIL_SUBJECT = "🎵 Pritam News Alerts — Latest Buzz [{date}]"
 
 RECIPIENT_EMAILS = [
     "mukherjeesagnik2@gmail.com",
