@@ -31,6 +31,15 @@ logger = logging.getLogger("pritam_monitor")
 # ── Core run cycle ────────────────────────────────────────────
 
 def run_once(dry_run: bool = False):
+    """Execute a single fetch-filter-send cycle.
+    
+    Fetches articles from all sources, applies deduplication and AI filtering,
+    and sends an email with new articles to recipients. Persists seen URLs
+    to prevent duplicate sends across runs.
+    
+    Args:
+        dry_run: If True, print articles and preview email without sending.
+    """
     logger.info("=" * 60)
     logger.info("Pritam Monitor — Starting run")
     logger.info(f"Lookback: {settings.LOOKBACK_M_HOURS}h | Keywords: {len(settings.KEYWORDS)}")
@@ -103,6 +112,11 @@ def run_once(dry_run: bool = False):
 # ── Scheduler ─────────────────────────────────────────────────
 
 def run_scheduled():
+    """Run the fetch-filter-send cycle repeatedly on a schedule.
+    
+    Continuously calls run_once() in a loop, sleeping for RUN_EVERY_N_HOURS
+    between cycles. Catches and logs exceptions to prevent scheduler crashes.
+    """
     logger.info(f"Scheduler mode — running every {settings.RUN_EVERY_N_HOURS}h.")
     while True:
         try:

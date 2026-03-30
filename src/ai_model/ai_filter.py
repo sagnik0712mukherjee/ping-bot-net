@@ -30,14 +30,27 @@ _DEFAULT_SYSTEM_PROMPT = settings.DEFAULT_SYSTEM_PROMPT
 
 
 def _get_system_prompt() -> str:
+    """Retrieve the AI filter system prompt from settings or use default.
+    
+    Returns the custom AI_FILTER_PROMPT from settings if defined,
+    otherwise uses the dynamically generated DEFAULT_SYSTEM_PROMPT.
+    """
     return getattr(settings, "AI_FILTER_PROMPT", _DEFAULT_SYSTEM_PROMPT)
 
 
 def _get_api_key() -> str:
+    """Retrieve the OpenAI API key from settings.
+    
+    Returns the OPENAI_API_KEY from settings, or empty string if not set.
+    """
     return getattr(settings, "OPENAI_API_KEY", "")
 
 
 def _is_enabled() -> bool:
+    """Check if AI filtering is enabled in settings.
+    
+    Returns True if AI_FILTER_ENABLED is set in settings, defaults to True.
+    """
     return getattr(settings, "AI_FILTER_ENABLED", True)
 
 

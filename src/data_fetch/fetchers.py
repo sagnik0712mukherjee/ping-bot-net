@@ -118,10 +118,29 @@ def _title_has_pritam(title: str) -> bool:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _cutoff_dt(lookback_hours: int) -> datetime:
+    """Calculate the cutoff datetime for filtering recent articles.
+    
+    Args:
+        lookback_hours: Number of hours to look back from now.
+        
+    Returns:
+        datetime object representing the cutoff point in UTC.
+    """
     return datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
 
 
 def _parse_feedparser_time(entry) -> datetime | None:
+    """Extract and parse publication time from a feedparser entry.
+    
+    Attempts to parse published_parsed or updated_parsed attributes from
+    the feedparser entry object.
+    
+    Args:
+        entry: A feedparser entry object.
+        
+    Returns:
+        datetime object in UTC if found, None otherwise.
+    """
     for attr in ("published_parsed", "updated_parsed"):
         t = getattr(entry, attr, None)
         if t:
@@ -133,10 +152,27 @@ def _parse_feedparser_time(entry) -> datetime | None:
 
 
 def _dt_to_iso(dt: datetime | None) -> str:
+    """Convert a datetime object to ISO 8601 string format.
+    
+    Args:
+        dt: A datetime object, or None.
+        
+    Returns:
+        ISO format string if dt is provided, empty string if None.
+    """
     return dt.isoformat() if dt else ""
 
 
 def _is_fresh(dt: datetime | None, lookback_hours: int) -> bool:
+    """Check if a datetime is within the lookback window.
+    
+    Args:
+        dt: A datetime object to check, or None.
+        lookback_hours: Number of hours to consider as recent.
+        
+    Returns:
+        True if dt is within the lookback window or if dt is None (unknown dates included).
+    """
     if dt is None:
         return True   # unknown date → include (better to over-report)
     return dt >= _cutoff_dt(lookback_hours)
@@ -150,11 +186,29 @@ def _clean(raw: str) -> str:
 
 
 def _strip_html(raw: str) -> str:
+    """Remove HTML tags from a string.
+    
+    Args:
+        raw: String potentially containing HTML markup.
+        
+    Returns:
+        String with all HTML tags removed.
+    """
     return re.sub(r"<[^>]+>", "", raw or "").strip()
 
 
 def _resolve_google_alerts_url(url: str) -> str:
-    """Extract real URL from Google Alerts redirect wrapper (zero HTTP)."""
+    """Extract the real URL from a Google Alerts RSS redirect wrapper.
+    
+    Google Alerts wraps URLs in a redirect wrapper. This function extracts
+    the actual target URL.
+    
+    Args:
+        url: A URL possibly wrapped in Google Alerts redirect.
+        
+    Returns:
+        The original URL if extraction succeeds, otherwise the input URL.
+    """
     if "google.com/url" in url:
         m = re.search(r'[?&]url=([^&]+)', url)
         if m:
@@ -165,6 +219,20 @@ def _resolve_google_alerts_url(url: str) -> str:
 
 def _article(source: str, title: str, url: str,
              excerpt: str, published_at: str) -> dict:
+    """Create a standardized article dictionary.
+    
+    Constructs an article record with resolved URLs and cleaned HTML.
+    
+    Args:
+        source: Name of the news source.
+        title: Article headline.
+        url: Article URL.
+        excerpt: Article summary or excerpt.
+        published_at: ISO format publication datetime string.
+        
+    Returns:
+        Dictionary with keys: source, title, url, excerpt, published_at.
+    """
     return {
         "source":       source,
         "title":        _strip_html(title),
@@ -537,6 +605,11 @@ def _fetch_site_scoped(site_domain: str, source_name: str) -> list[dict]:
 
 
 def fetch_toi() -> list[dict]:
+    """Fetch articles from Times of India RSS feeds and Google News.
+    
+    Returns:
+        List of article dictionaries from Times of India and Bombay Times.
+    """
     results = []
     # Direct RSS feeds
     for feed_url in [
@@ -551,6 +624,11 @@ def fetch_toi() -> list[dict]:
 
 
 def fetch_filmfare() -> list[dict]:
+    """Fetch articles from Filmfare via Google News and RSS feed.
+    
+    Returns:
+        List of article dictionaries from Filmfare.
+    """
     results = _fetch_site_scoped("filmfare.com", "Filmfare")
     results.extend(_parse_rss(
         "https://www.filmfare.com/feeds/feeds.xml",
@@ -561,6 +639,11 @@ def fetch_filmfare() -> list[dict]:
 
 
 def fetch_zoom() -> list[dict]:
+    """Fetch articles from Zoom TV Entertainment.
+    
+    Returns:
+        List of article dictionaries from Zoom TV Entertainment.
+    """
     results = _fetch_site_scoped("zoomtventertainment.com", "Zoom TV Entertainment")
     results.extend(_parse_rss(
         "https://www.zoomtventertainment.com/feeds/bollywood.xml",
@@ -571,12 +654,22 @@ def fetch_zoom() -> list[dict]:
 
 
 def fetch_pinkvilla() -> list[dict]:
+    """Fetch articles from Pinkvilla RSS feed.
+    
+    Returns:
+        List of article dictionaries from Pinkvilla.
+    """
     r = _parse_rss("https://www.pinkvilla.com/feed", "Pinkvilla", settings.LOOKBACK_M_HOURS)
     logger.info(f"[Pinkvilla] {len(r)} articles.")
     return r
 
 
 def fetch_bollywood_hungama() -> list[dict]:
+    """Fetch articles from Bollywood Hungama RSS feed.
+    
+    Returns:
+        List of article dictionaries from Bollywood Hungama.
+    """
     r = _parse_rss("https://www.bollywoodhungama.com/feed/",
                    "Bollywood Hungama", settings.LOOKBACK_M_HOURS)
     logger.info(f"[Bollywood Hungama] {len(r)} articles.")
@@ -584,6 +677,11 @@ def fetch_bollywood_hungama() -> list[dict]:
 
 
 def fetch_ndtv() -> list[dict]:
+    """Fetch articles from NDTV Entertainment RSS feed.
+    
+    Returns:
+        List of article dictionaries from NDTV Entertainment.
+    """
     r = _parse_rss("https://feeds.feedburner.com/NdtvEntertainment",
                    "NDTV Entertainment", settings.LOOKBACK_M_HOURS)
     logger.info(f"[NDTV] {len(r)} articles.")
@@ -623,6 +721,11 @@ def fetch_imdb() -> list[dict]:
 
 
 def _imdb_fallback() -> list[dict]:
+    """Fetch IMDB articles using Google News fallback when direct scrape fails.
+    
+    Returns:
+        List of article dictionaries from IMDB via Google News.
+    """
     results = []
     for kw in settings.KEYWORDS[:3]:
         feed = feedparser.parse(
@@ -650,6 +753,14 @@ _INSTAGRAM_MIRRORS = [
 ]
 
 def fetch_instagram() -> list[dict]:
+    """Fetch posts from Pritam's Instagram profile via mirror sites.
+    
+    Attempts to scrape Instagram using public mirror sites (imginn, imgsed, inflact).
+    Falls back to the next mirror if one fails.
+    
+    Returns:
+        List of article dictionaries containing Instagram posts.
+    """
     cutoff  = _cutoff_dt(settings.LOOKBACK_M_HOURS)
     headers = {"User-Agent": _BROWSER_UA}
 

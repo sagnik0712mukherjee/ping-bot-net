@@ -23,9 +23,6 @@ KEYWORDS = [
     "Pritam Bhooth Bangla",      # current film — keeps "Pritam" in the query
     "Pritam Arijit",             # common co-credit pairing
     "Pritam Cocktail 2",         # upcoming project — keeps "Pritam" in query
-    # ── NOTE: Never add bare film names like "Bhooth Bangla" or "Cocktail 2"
-    #    without "Pritam" — they pull ALL articles about those films regardless
-    #    of whether Pritam is mentioned.
 ]
 
 # ── API Keys ───────────────────────────────────────────────────
@@ -87,18 +84,7 @@ DEFAULT_SYSTEM_PROMPT = build_ai_filter_prompt()
 # genuinely about Pritam Chakraborty the composer.
 AI_FILTER_ENABLED = True
 
-# Optional: override the filter prompt here.
-# Leave commented out to use the default prompt in ai_filter.py.
-# AI_FILTER_PROMPT = "Your custom prompt here..."
-
 # ── Google Alerts RSS ──────────────────────────────────────────
-# No key needed. Set up manually:
-#   1. Go to https://www.google.com/alerts
-#   2. Create an alert for each keyword (e.g. "Pritam Chakraborty")
-#   3. Under Deliver to → choose "RSS feed"
-#   4. Copy the feed URL and paste it below
-# Each alert URL looks like:
-#   https://www.google.com/alerts/feeds/XXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXX
 GOOGLE_ALERTS_RSS_URLS = [
     "https://www.google.com/alerts/feeds/09530471010999255653/5315091837360255028",
     "https://www.google.com/alerts/feeds/09530471010999255653/9086967727411701928",
@@ -116,7 +102,6 @@ GOOGLE_ALERTS_RSS_URLS = [
 
 # ── YouTube Channel IDs to monitor directly ────────────────────
 # These channels are fetched via public RSS — no key needed.
-# To find a channel ID: go to the channel page → view source → search "channelId"
 YOUTUBE_CHANNEL_IDS = [
     "UCxxkv3sMgOdVK1cLQPmmH1Q",   # T-Series (Pritam's primary label)
     "UCiEGXMH3HQp6FfKc2YdDeFQ",   # Sony Music India
@@ -134,8 +119,8 @@ REDDIT_SUBREDDITS = [
 # ── SMTP / Email ───────────────────────────────────────────────
 SMTP_HOST     = "smtp.gmail.com"
 SMTP_PORT     = 587
-SMTP_USERNAME = "mukherjeesagnik2@gmail.com"       # Your Gmail address
-SMTP_PASSWORD = "lbrlqrhvgyflfjdh"     # Gmail App Password (NOT your real password)
+SMTP_USERNAME = "mukherjeesagnik2@gmail.com"
+SMTP_PASSWORD = "lbrlqrhvgyflfjdh"
 EMAIL_FROM    = "Pritam Monitor <mukherjeesagnik2@gmail.com>"
 EMAIL_SUBJECT = "🎵 Pritam Monitor — Latest Buzz [{date}]"
 
@@ -157,7 +142,7 @@ ENABLE_NEWSAPI           = True    # NewsAPI        (free key needed)
 ENABLE_GNEWS             = False   # GNews API      (free key needed) — DISABLED: 403 errors
 ENABLE_GOOGLE_ALERTS_RSS = True    # Google Alerts  (manual setup, no key)
 ENABLE_REDDIT            = True    # Reddit RSS     (no key)
-ENABLE_YOUTUBE           = False    # YouTube search + channels (no key)
+ENABLE_YOUTUBE           = False   # YouTube search + channels (no key)
 
 # Tier 2 — direct named-outlet scrapers (all free, no keys)
 ENABLE_TOI               = True    # Times of India / Bombay Times

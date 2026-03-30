@@ -31,6 +31,14 @@ _SOURCE_COLORS = {
 }
 
 def _badge(source: str) -> str:
+    """Generate HTML badge for article source with colors.
+    
+    Args:
+        source: Name of the article source.
+        
+    Returns:
+        HTML string for a styled source badge.
+    """
     bg, fg = "#f3f4f6", "#374151"
     for key, (b, f) in _SOURCE_COLORS.items():
         if source.startswith(key):
@@ -44,6 +52,14 @@ def _badge(source: str) -> str:
 
 
 def _fmt_date(iso_str: str) -> str:
+    """Format an ISO datetime string to human-readable format.
+    
+    Args:
+        iso_str: ISO 8601 format datetime string.
+        
+    Returns:
+        Formatted date string (e.g. "Mar 15, 2026 · 10:30 AM UTC") or "―" if empty.
+    """
     if not iso_str:
         return "—"
     try:
@@ -57,6 +73,18 @@ def _fmt_date(iso_str: str) -> str:
 # ── HTML builder ──────────────────────────────────────────────
 
 def build_html_email(articles: list[dict], lookback_hours: int) -> str:
+    """Build a styled HTML email from a list of articles.
+    
+    Creates a professional HTML email digest with article cards, source breakdown,
+    and formatted styling.
+    
+    Args:
+        articles: List of article dictionaries with keys: title, url, source, excerpt, published_at.
+        lookback_hours: Number of hours this batch covers (for display).
+        
+    Returns:
+        Complete HTML email as a string.
+    """
     now_str = datetime.now(timezone.utc).strftime("%B %d, %Y at %I:%M %p UTC")
     count   = len(articles)
 
@@ -233,6 +261,24 @@ def send_email(
     smtp_pass:  str,
     from_addr:  str,
 ):
+    """Send an HTML email via SMTP.
+    
+    Constructs a multipart MIME email and sends it through the specified
+    SMTP server with TLS encryption.
+    
+    Args:
+        html_body: HTML content of the email.
+        subject: Email subject line.
+        recipients: List of recipient email addresses.
+        smtp_host: SMTP server hostname.
+        smtp_port: SMTP server port.
+        smtp_user: SMTP login username.
+        smtp_pass: SMTP login password.
+        from_addr: Sender email address.
+        
+    Raises:
+        Exception: If SMTP connection or send fails.
+    """
     msg            = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"]    = from_addr
