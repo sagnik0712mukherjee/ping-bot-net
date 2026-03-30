@@ -6,7 +6,7 @@
 import os
 # ── Schedule ──────────────────────────────────────────────────
 RUN_EVERY_N_HOURS = 1       # How often the bot runs (hours)
-LOOKBACK_M_HOURS  = 24       # How far back to look for content (hours)
+LOOKBACK_M_HOURS  = 2       # How far back to look for content (hours)
 
 # ── Keywords ──────────────────────────────────────────────────
 KEYWORDS = [
