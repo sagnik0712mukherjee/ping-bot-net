@@ -23,8 +23,7 @@ import logging
 import feedparser
 import requests
 from datetime import datetime, timezone, timedelta
-from urllib.parse import quote_plus
-
+from urllib.parse import quote_plus, unquote
 import config.settings as settings
 
 logger = logging.getLogger(__name__)
@@ -212,7 +211,6 @@ def _resolve_google_alerts_url(url: str) -> str:
     if "google.com/url" in url:
         m = re.search(r'[?&]url=([^&]+)', url)
         if m:
-            from urllib.parse import unquote
             return unquote(m.group(1))
     return url
 
@@ -317,7 +315,7 @@ def fetch_newsapi(keywords: list[str], lookback_hours: int, api_key: str) -> lis
         }
         try:
             resp = requests.get("https://newsapi.org/v2/everything",
-                                params=params, timeout=15)
+                                params=params, timeout=10)
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
@@ -362,7 +360,7 @@ def fetch_gnews(keywords: list[str], lookback_hours: int) -> list[dict]:
         params = {"q": kw, "lang": "en", "max": 10, "apikey": key}
         try:
             resp = requests.get("https://gnews.io/api/v4/search",
-                                params=params, timeout=15)
+                                params=params, timeout=10)
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
@@ -473,17 +471,23 @@ _PIPED_INSTANCES = [
 ]
 
 def fetch_youtube_search(keywords: list[str], lookback_hours: int) -> list[dict]:
-    """YouTube search via Piped API, falls back to Google News site:youtube.com."""
+    """YouTube search via Piped API for videos & shorts, falls back to Google News.
+    
+    Searches YouTube for videos and shorts (duration-agnostic) matching keywords.
+    Includes both full-length videos and short-form content (Shorts, clips, etc).
+    Falls back to Google News scoped to site:youtube.com if Piped API unavailable.
+    """
     cutoff  = _cutoff_dt(lookback_hours)
     results = []
 
     for kw in keywords:
         fetched = False
+        # Try Piped instances with aggressive timeout
         for instance in _PIPED_INSTANCES:
             try:
                 resp = requests.get(
                     f"{instance}/search?q={quote_plus(kw)}&filter=videos",
-                    timeout=15
+                    timeout=5  # Reduced from 15 to fail fast
                 )
                 resp.raise_for_status()
                 for v in resp.json().get("items", []):
@@ -498,8 +502,11 @@ def fetch_youtube_search(keywords: list[str], lookback_hours: int) -> list[dict]
                     if not title:
                         continue
                     video_id = v.get("url", "").lstrip("/watch?v=").split("&")[0]
+                    duration = v.get("duration", 0)
+                    is_short = duration < 60 if duration else False
+                    source_label = "YouTube Shorts" if is_short else "YouTube"
                     results.append(_article(
-                        source       = "YouTube",
+                        source       = source_label,
                         title        = title,
                         url          = f"https://www.youtube.com/watch?v={video_id}",
                         excerpt      = _clean(v.get("shortDescription", "")),
@@ -508,29 +515,34 @@ def fetch_youtube_search(keywords: list[str], lookback_hours: int) -> list[dict]
                 fetched = True
                 break
             except Exception as e:
-                logger.warning(f"[YouTube/Piped] {instance} failed for '{kw}': {e}")
+                logger.debug(f"[YouTube/Piped] {instance} failed for '{kw}': {type(e).__name__}")
                 continue
 
         if not fetched:
+            logger.debug(f"[YouTube/Piped] All instances failed for '{kw}' — using Google News fallback")
             # Fallback: Google News scoped to youtube.com
-            feed = feedparser.parse(
-                _GN_URL.format(query=quote_plus(f"{kw} site:youtube.com"))
-            )
-            for entry in feed.entries:
-                dt    = _parse_feedparser_time(entry)
-                title = entry.get("title", "").strip()
-                if not _is_fresh(dt, lookback_hours):
-                    continue
-                summary = entry.get("summary", "")
-                if not _prefilter(title + " " + summary, title):
-                    continue
-                results.append(_article(
-                    source       = "YouTube",
-                    title        = title,
-                    url          = entry.get("link", ""),
-                    excerpt      = _clean(summary),
-                    published_at = _dt_to_iso(dt),
-                ))
+            try:
+                feed = feedparser.parse(
+                    _GN_URL.format(query=quote_plus(f"{kw} site:youtube.com")),
+                    request_headers={"User-Agent": _BROWSER_UA}
+                )
+                for entry in feed.entries:
+                    dt    = _parse_feedparser_time(entry)
+                    title = entry.get("title", "").strip()
+                    if not _is_fresh(dt, lookback_hours):
+                        continue
+                    summary = entry.get("summary", "")
+                    if not _prefilter(title + " " + summary, title):
+                        continue
+                    results.append(_article(
+                        source       = "YouTube",
+                        title        = title,
+                        url          = entry.get("link", ""),
+                        excerpt      = _clean(summary),
+                        published_at = _dt_to_iso(dt),
+                    ))
+            except Exception as e:
+                logger.warning(f"[YouTube] Fallback also failed for '{kw}': {e}")
 
     logger.info(f"[YouTube Search] {len(results)} videos fetched.")
     return results
@@ -693,7 +705,7 @@ def fetch_imdb() -> list[dict]:
     headers = {"User-Agent": _BROWSER_UA, "Accept-Language": "en-US,en;q=0.9"}
     try:
         resp = requests.get("https://www.imdb.com/name/nm0679665/news",
-                            headers=headers, timeout=20)
+                            headers=headers, timeout=10)
         resp.raise_for_status()
         html = resp.text
     except Exception as e:
@@ -766,7 +778,7 @@ def fetch_instagram() -> list[dict]:
 
     for mirror_name, mirror_url in _INSTAGRAM_MIRRORS:
         try:
-            resp = requests.get(mirror_url, headers=headers, timeout=20)
+            resp = requests.get(mirror_url, headers=headers, timeout=10)
             resp.raise_for_status()
             html = resp.text
         except Exception as e:
@@ -816,6 +828,109 @@ def fetch_instagram() -> list[dict]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  Twitter/X Monitoring
+# ─────────────────────────────────────────────────────────────────────────────
+
+def fetch_twitter() -> list[dict]:
+    """Fetch tweets mentioning Pritam or from @pritamofficial via Twitter RSS.
+    
+    Uses Google News for Twitter search (no API key needed) to find tweets
+    mentioning tracked keywords and accounts.
+    
+    Returns:
+        List of article dictionaries from Twitter.
+    """
+    if not getattr(settings, "TWITTER_SEARCH_TERMS", []):
+        logger.info("[Twitter] No search terms configured — skipping.")
+        return []
+    
+    results = []
+    cutoff = _cutoff_dt(settings.LOOKBACK_M_HOURS)
+    
+    for term in settings.TWITTER_SEARCH_TERMS:
+        # Search Twitter via Google News
+        query = f"{term} site:twitter.com OR site:x.com"
+        feed = feedparser.parse(_GN_URL.format(query=quote_plus(query)))
+        
+        for entry in feed.entries:
+            dt = _parse_feedparser_time(entry)
+            if not _is_fresh(dt, settings.LOOKBACK_M_HOURS):
+                continue
+            
+            title = entry.get("title", "").strip()
+            url = entry.get("link", "")
+            summary = entry.get("summary", "")
+            
+            if not title or not url:
+                continue
+            
+            results.append(_article(
+                source       = "Twitter",
+                title        = title,
+                url          = url,
+                excerpt      = _clean(summary),
+                published_at = _dt_to_iso(dt),
+            ))
+    
+    logger.info(f"[Twitter] {len(results)} tweets fetched.")
+    return results
+
+
+def fetch_hashtags() -> list[dict]:
+    """Fetch posts mentioning Pritam-related hashtags via Google News.
+    
+    Searches for configured hashtags to find fan posts, music releases,
+    articles about Pritam's songs and projects from various platforms.
+    
+    Returns:
+        List of article dictionaries mentioning tracked hashtags.
+    """
+    if not getattr(settings, "HASHTAGS", []):
+        logger.info("[Hashtags] No hashtags configured — skipping.")
+        return []
+    
+    results = []
+    cutoff = _cutoff_dt(settings.LOOKBACK_M_HOURS)
+    seen_urls: set[str] = set()
+    
+    for hashtag in settings.HASHTAGS:
+        # Search via Google News
+        feed = feedparser.parse(_GN_URL.format(query=quote_plus(hashtag)))
+        
+        for entry in feed.entries:
+            dt = _parse_feedparser_time(entry)
+            if not _is_fresh(dt, settings.LOOKBACK_M_HOURS):
+                continue
+            
+            url = entry.get("link", "")
+            if url in seen_urls:
+                continue
+            
+            title = entry.get("title", "").strip()
+            summary = entry.get("summary", "")
+            
+            if not title:
+                continue
+            
+            # Apply basic filter to reduce noise
+            combined = (title + " " + summary).lower()
+            if not _prefilter(combined, title):
+                continue
+            
+            seen_urls.add(url)
+            results.append(_article(
+                source       = f"Hashtag {hashtag}",
+                title        = title,
+                url          = url,
+                excerpt      = _clean(summary),
+                published_at = _dt_to_iso(dt),
+            ))
+    
+    logger.info(f"[Hashtags] {len(results)} posts fetched.")
+    return results
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  Master fetch — called by main.py
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -854,6 +969,10 @@ def fetch_all() -> list[dict]:
         raw.extend(fetch_imdb())
     if settings.ENABLE_INSTAGRAM:
         raw.extend(fetch_instagram())
+    if settings.ENABLE_TWITTER:
+        raw.extend(fetch_twitter())
+    if settings.ENABLE_HASHTAGS:
+        raw.extend(fetch_hashtags())
 
     # Deduplicate by URL
     seen:    set[str]   = set()

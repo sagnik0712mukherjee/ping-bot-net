@@ -5,8 +5,8 @@
 # ═══════════════════════════════════════════════════════════════
 import os
 # ── Schedule ──────────────────────────────────────────────────
-RUN_EVERY_N_HOURS = 4       # How often the bot runs (hours)
-LOOKBACK_M_HOURS  = 8       # How far back to look for content (hours)
+RUN_EVERY_N_HOURS = 1       # How often the bot runs (hours)
+LOOKBACK_M_HOURS  = 24       # How far back to look for content (hours)
 
 # ── Keywords ──────────────────────────────────────────────────
 KEYWORDS = [
@@ -41,39 +41,38 @@ OPENAI_MODEL = "gpt-4.1"
 # Prompt for OpenAI — dynamically generated from KEYWORDS
 def build_ai_filter_prompt() -> str:
     """Build AI filter prompt dynamically based on KEYWORDS list."""
-    # Extract film/project names and songs from keywords
-    films = [kw for kw in KEYWORDS if any(film in kw.lower() for film in ["bhooth", "cocktail"])]
-    films_list = ", ".join(films) if films else "Bhooth Bangla, Cocktail 2"
+    # Extract all keywords for the prompt
+    keywords_display = ", ".join(KEYWORDS[:6]) + f"... (and {len(KEYWORDS)-6} more)" if len(KEYWORDS) > 6 else ", ".join(KEYWORDS)
     
-    # Extract song-related keywords (any with common Pritam song titles)
-    song_keywords = [kw for kw in KEYWORDS if any(song in kw.lower() for song in ["arijit", "cocktail", "bhooth"])]
+    # Extract film/project names from keywords (any with "Pritam" + film keywords)
+    film_keywords = [kw for kw in KEYWORDS if any(film in kw.lower() for film in ["bhooth", "cocktail", "barfi", "jab", "arijit"])]
+    films_list = ", ".join(film_keywords) if film_keywords else "tracked projects"
     
     return f"""
-        You are a relevance filter for a news monitoring bot that tracks Pritam Chakraborty — the famous Bollywood music composer known for Jab We Met, Barfi!, Ae Dil Hai Mushkil, Cocktail, Bhooth Bangla, and many more.
+        You are a relevance filter for a news monitoring bot that tracks Pritam Chakraborty — a famous Bollywood music composer.
 
         You will receive a numbered list of articles (title + excerpt). For each one, reply with ONLY "YES" or "NO" on a separate line — one answer per article, in the same order.
 
-        We are currently tracking these keywords: {', '.join(KEYWORDS[:6])}... (and {len(KEYWORDS)-6} more)
-        Key film projects: {films_list}
-        Related songs: Tu Hi Disda, Ram Ji Aaike, and others from his tracked films
+        We are currently tracking these keywords: {keywords_display}
+        Key tracked projects: {films_list}
 
         Reply YES if the article:
         - Directly mentions "Pritam" (the composer) anywhere in title or content
-        - Is about a specific Pritam song (e.g., "Tu Hi Disda", "Ram Ji Aaike") — even if PRITAM's name is not explicitly mentioned
-        - Discusses movies like {films_list} AND mentions music/songs/soundtrack/composer role (indicates Pritam's artistic contribution)
-        - Credits Pritam alongside other musicians (e.g., "Pritam, Arijit Singh, Nikhita G") in a music/song context
-        - Mentions any tracked film title WITH keywords like: "song", "music", "soundtrack", "composer", "score", "musical", "singer", "vocal", "score"
-        - Is an interview, announcement, or news about Pritam's upcoming release or past work
+        - Is about a specific Pritam song or music composition — even without explicit "Pritam" mention
+        - Discusses any of the tracked projects/keywords AND mentions music/songs/soundtrack/composer role
+        - Credits Pritam alongside other musicians in a music/song context
+        - Mentions any tracked keyword WITH music-related terms: "song", "music", "soundtrack", "composer", "score", "musical", "singer", "vocal", "album"
+        - Is an interview, announcement, or news about Pritam's work
 
         Reply NO if the article:
-        - Is about a completely different person named Pritam (Pritam Singh the politician, Pritam the footballer, etc.) — check context carefully
-        - Mentions a tracked film/project BUT only discusses plot, box office, cast, release dates — no music/film-composer context
-        - Is generic Bollywood gossip where Pritam is not the focus
-        - Is spam, cocktail recipes, unrelated shopping content, or completely off-topic
-        - Mentions "Pritam" only once in passing in an article primarily about someone else
+        - Is about a completely different person named Pritam
+        - Mentions tracked keywords BUT only discusses plot, box office, cast, release dates — no music/composer context
+        - Is generic gossip where Pritam is not the focus
+        - Is spam, unrelated recipes, shopping content, or off-topic
+        - Mentions "Pritam" only in passing in an article primarily about someone else
 
-        REMEMBER: If article mentions tracked film names OR tracked songs + music-related context, ACCEPT IT even without explicit "Pritam" mention.
-        Accept all Pritam song/soundtrack/film music content. Only YES or NO — no explanations.
+        REMEMBER: If article mentions tracked keywords/projects + music-related context, ACCEPT IT even without explicit "Pritam" name.
+        Accept all music-related content. Only YES or NO — no explanations.
     """
 
 # Default prompt (kept for compatibility)
@@ -116,6 +115,29 @@ REDDIT_SUBREDDITS = [
     "IndianMusicians",
 ]
 
+# ── Twitter/X Monitoring ──────────────────────────────────────
+# Monitor @pritamofficial and related accounts + search mentions
+TWITTER_ACCOUNTS = [
+    "ipritamofficial",
+]
+
+TWITTER_SEARCH_TERMS = [
+    "Pritam Chakraborty",
+    "Pritam music",
+    "Pritam songs",
+    "@pritamofficial",
+]
+
+# ── Hashtag Monitoring via Google News ────────────────────────
+# Search for these hashtags to find fan posts, music releases, etc.
+HASHTAGS = [
+    "#PritamMusic",
+    "#PritamComposer",
+    "#PritamSongs",
+    "#BhootBangla",
+    "#Cocktail2",
+]
+
 # ── SMTP / Email ───────────────────────────────────────────────
 SMTP_HOST     = "smtp.gmail.com"
 SMTP_PORT     = 587
@@ -142,7 +164,7 @@ ENABLE_NEWSAPI           = True    # NewsAPI        (free key needed)
 ENABLE_GNEWS             = False   # GNews API      (free key needed) — DISABLED: 403 errors
 ENABLE_GOOGLE_ALERTS_RSS = True    # Google Alerts  (manual setup, no key)
 ENABLE_REDDIT            = True    # Reddit RSS     (no key)
-ENABLE_YOUTUBE           = False   # YouTube search + channels (no key)
+ENABLE_YOUTUBE           = False   # YouTube search + channels + Shorts (Piped API unstable — temporarily disabled)
 
 # Tier 2 — direct named-outlet scrapers (all free, no keys)
 ENABLE_TOI               = True    # Times of India / Bombay Times
@@ -152,4 +174,6 @@ ENABLE_PINKVILLA         = True    # Pinkvilla
 ENABLE_BOLLYWOOD_HUNGAMA = True    # Bollywood Hungama
 ENABLE_NDTV              = True    # NDTV Entertainment
 ENABLE_IMDB              = True    # IMDB — Pritam's news page (direct scrape)
-ENABLE_INSTAGRAM         = True    # Instagram @pritamofficial via Picuki (best-effort)
+ENABLE_INSTAGRAM         = False   # Instagram @pritamofficial (currently blocked, revisit later)
+ENABLE_TWITTER           = True    # Twitter/X mentions & accounts
+ENABLE_HASHTAGS          = True    # Hashtag search via Google News

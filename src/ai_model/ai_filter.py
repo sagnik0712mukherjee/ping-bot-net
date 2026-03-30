@@ -18,6 +18,7 @@ Configuration (in settings.py):
 
 import logging
 import config.settings as settings
+from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,6 @@ def apply_filter(articles: list[dict]) -> list[dict]:
         return articles
 
     try:
-        from openai import OpenAI
         client = OpenAI(api_key=api_key)
     except ImportError:
         logger.warning("[AI Filter] openai not installed — run: pip install openai")

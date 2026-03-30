@@ -12,7 +12,7 @@ import argparse
 import logging
 import time
 from datetime import datetime, timezone
-
+from dateutil import parser as dtp
 import config.settings as settings
 from src.data_fetch.fetchers import fetch_all
 from src.utilities.dedup import load_seen, save_seen, filter_new, deduplicate_within_batch
@@ -69,7 +69,6 @@ def run_once(dry_run: bool = False):
     # 5. Sort newest first
     def _sort_key(a):
         try:
-            from dateutil import parser as dtp
             return dtp.parse(a["published_at"])
         except Exception:
             return datetime(2000, 1, 1, tzinfo=timezone.utc)

@@ -9,6 +9,9 @@ from collections import Counter
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime, timezone
+from datetime import timezone, timedelta, datetime
+from dateutil import parser as dtp
+from datetime import timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +22,10 @@ _SOURCE_COLORS = {
     "NewsAPI":                      ("#fff3e0", "#e65100"),
     "GNews":                        ("#fff8e1", "#f57f17"),
     "Reddit":                       ("#fce4ec", "#c62828"),
+    "Twitter":                      ("#e1f5fe", "#0288d1"),
+    "Hashtag":                      ("#f3e5f5", "#7b1fa2"),
     "YouTube":                      ("#ffebee", "#b71c1c"),
+    "YouTube Shorts":               ("#ffcdd2", "#d32f2f"),
     "Times of India":               ("#e8eaf6", "#283593"),
     "Filmfare":                     ("#fdf6e3", "#8d6418"),
     "Zoom TV Entertainment":        ("#f3e5f5", "#6a1b9a"),
@@ -52,20 +58,22 @@ def _badge(source: str) -> str:
 
 
 def _fmt_date(iso_str: str) -> str:
-    """Format an ISO datetime string to human-readable format.
+    """Format an ISO datetime string to human-readable format in IST.
     
     Args:
-        iso_str: ISO 8601 format datetime string.
+        iso_str: ISO 8601 format datetime string (UTC).
         
     Returns:
-        Formatted date string (e.g. "Mar 15, 2026 · 10:30 AM UTC") or "―" if empty.
+        Formatted date string in IST (e.g. "Mar 15, 2026 · 10:30 AM IST") or "—" if empty.
     """
     if not iso_str:
         return "—"
     try:
-        from dateutil import parser as dtp
         dt = dtp.parse(iso_str)
-        return dt.strftime("%b %d, %Y · %I:%M %p UTC")
+        # Convert UTC to IST (UTC+5:30)
+        ist = timezone(timedelta(hours=5, minutes=30))
+        dt_ist = dt.astimezone(ist)
+        return dt_ist.strftime("%b %d, %Y · %I:%M %p IST")
     except Exception:
         return iso_str
 
@@ -76,7 +84,7 @@ def build_html_email(articles: list[dict], lookback_hours: int) -> str:
     """Build a styled HTML email from a list of articles.
     
     Creates a professional HTML email digest with article cards, source breakdown,
-    and formatted styling.
+    and formatted styling in IST timezone.
     
     Args:
         articles: List of article dictionaries with keys: title, url, source, excerpt, published_at.
@@ -85,7 +93,8 @@ def build_html_email(articles: list[dict], lookback_hours: int) -> str:
     Returns:
         Complete HTML email as a string.
     """
-    now_str = datetime.now(timezone.utc).strftime("%B %d, %Y at %I:%M %p UTC")
+    ist = timezone(timedelta(hours=5, minutes=30))
+    now_str = datetime.now(ist).strftime("%B %d, %Y at %I:%M %p IST")
     count   = len(articles)
 
     # Source breakdown pills
