@@ -25,15 +25,15 @@ KEYWORDS = [
     "Pritam Cocktail 2",         # upcoming project — keeps "Pritam" in query
 ]
 
-# ── API Keys ───────────────────────────────────────────────────
+# ── API Keys (read from GitHub Actions secrets / environment variables) ───────────────────────────────────────────────
 # NewsAPI — free 100 req/day → https://newsapi.org
-NEWSAPI_KEY = "e05d8b48ac3a4b12bbb9d0020951f084"
+NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
 
-# GNews — free 100 req/day → https://gnews.io
-GNEWS_KEY = "0812a06752dd9a464bff0b545d36bdcf"
+# GNews — free 100 req/day → https://gnews.io (optional)
+GNEWS_KEY = os.getenv("GNEWS_KEY", "")
 
 # OpenAI — for AI relevance filter → https://platform.openai.com/api-keys
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # OpenAI Model
 OPENAI_MODEL = "gpt-4.1"
@@ -138,11 +138,11 @@ HASHTAGS = [
     "#Cocktail2",
 ]
 
-# ── SMTP / Email ───────────────────────────────────────────────
+# ── SMTP / Email (read from GitHub Actions secrets / environment variables) ───────────────────────────────────────────────
 SMTP_HOST     = "smtp.gmail.com"
 SMTP_PORT     = 587
 SMTP_USERNAME = "mukherjeesagnik2@gmail.com"
-SMTP_PASSWORD = "lbrlqrhvgyflfjdh"
+SMTP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")
 EMAIL_FROM    = "Pritam News Alerts <mukherjeesagnik2@gmail.com>"
 EMAIL_SUBJECT = "🎵 Pritam News Alerts — Latest Buzz [{date}]"
 

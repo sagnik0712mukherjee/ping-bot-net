@@ -32,78 +32,21 @@ jobs:
           pip install -r requirements.txt
       
       # 4. Run the bot
-      - name: 🚀 Run Pritam Monitor
-        id: monitor
+      - name: 🚀 Run Pritam News Alerts Bot
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
-          echo "⏱️ Starting Pritam Monitor at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "⏱️ Starting Pritam News Alerts Bot at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           python3 main.py 2>&1 | tee monitor_log.txt
-          echo "✅ Pritam Monitor completed at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "✅ Pritam News Alerts Bot completed at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
       
-      # 5. Upload logs as artifacts
+      # 5. Upload logs as artifact
       - name: 📋 Save logs as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pritam-monitor-logs-${{ github.run_number }}-${{ github.run_attempt }}
+          name: logs-run-${{ github.run_number }}
           path: monitor_log.txt
           retention-days: 30
-      
-      # 6. Commit seen_urls.json back to repo (to persist state)
-      - name: 💾 Commit dedup state
-        if: always()
-        run: |
-          git config user.name "Pritam Monitor Bot"
-          git config user.email "bot@pritammonitor.local"
-          git add -A
-          git diff --quiet && git diff --staged --quiet || git commit -m "🔄 Update dedup cache - Run #${{ github.run_number }}"
-      
-      # 7. Push changes back
-      - name: 📤 Push changes
-        if: always()
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
-      
-      # 8. Failure notification (optional)
-      - name: 🚨 Notify if failed
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: 1,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '❌ **Pritam Monitor Failed** (Run #${{ github.run_number }})\n\nCheck [logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
-            })
-
-  # Status tracking job
-  status:
-    name: 📊 Record execution status
-    runs-on: ubuntu-latest
-    needs: monitor
-    if: always()
-    
-    steps:
-      - name: 📈 Log execution
-        run: |
-          echo "Run #${{ github.run_number }}" >> run_history.txt
-          echo "Status: ${{ needs.monitor.result }}" >> run_history.txt
-          echo "Time: $(date -u)" >> run_history.txt
-          echo "---" >> run_history.txt
-          cat run_history.txt
-      
-      - name: ✨ Create status badge
-        run: |
-          if [ "${{ needs.monitor.result }}" = "success" ]; then
-            echo "[![Pritam Monitor](https://img.shields.io/badge/Pritam%20Monitor-Active-brightgreen)](https://github.com/${{ github.repository }}/actions)" > MONITOR_STATUS.md
-          else
-            echo "[![Pritam Monitor](https://img.shields.io/badge/Pritam%20Monitor-Failed-red)](https://github.com/${{ github.repository }}/actions)" > MONITOR_STATUS.md
-          fi
-          echo "" >> MONITOR_STATUS.md
-          echo "**Last Run:** $(date -u)" >> MONITOR_STATUS.md
-          echo "**Status:** ${{ needs.monitor.result }}" >> MONITOR_STATUS.md
-          cat MONITOR_STATUS.md
