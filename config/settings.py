@@ -1,126 +1,170 @@
-# Imports
+# ═══════════════════════════════════════════════════════════════
+#  PRITAM MONITOR  —  settings.py
+#  This is the ONLY file you need to edit.
+#  Every tunable in the whole project lives here.
+# ═══════════════════════════════════════════════════════════════
 import os
-from pathlib import Path
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+# ── Schedule ──────────────────────────────────────────────────
+RUN_EVERY_N_HOURS = 4       # How often the bot runs (hours)
+LOOKBACK_M_HOURS  = 8       # How far back to look for content (hours)
 
-# Load environment variables from .env file
-env_path = Path(__file__).parent.parent / ".env"  # config/ -> ping-bot-net/ -> .env
-print(f"\n[Config] Looking for .env at: {env_path}")
-print(f"[Config] .env exists: {env_path.exists()}")
-
-if env_path.exists():
-    result = load_dotenv(dotenv_path=env_path, verbose=True)
-    print(f"[Config] .env loaded: {result}")
-else:
-    print(f"[Config] WARNING: .env file not found at {env_path}")
-
-# API Keys
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
-    raise ValueError("OPENAI_API_KEY environment variable is not set")
-
-# LLM Models
-search_llm_model = ChatOpenAI(model="gpt-4o-mini", api_key=openai_api_key)
-summariser_llm_model = ChatOpenAI(model="gpt-4o-mini", api_key=openai_api_key)
-
-# Search Keywords
-# Search Keywords - Comprehensive tracking of Pritam, his songs, albums, movies, and controversies
-# OPTIMIZED: Core keywords only to speed up searches
-search_keywords = [
-    # Direct Pritam references
-    "Pritam",
+# ── Keywords ──────────────────────────────────────────────────
+KEYWORDS = [
+    # ── Core identity keywords (all contain "Pritam" — tight, no false positives)
     "Pritam Chakraborty",
+    "Pritam composer",
     "Pritam music director",
-    
-    # Pritam's most famous songs
-    "Tu Hi Disda",
-    
-    # Controversies and news
+    "Pritam Bollywood",
     "Pritam controversy",
+    "Pritam plagiarism",
+    "Pritam new song",
+    "Pritam album",
+    "Pritam interview",
+    "Pritam Bhooth Bangla",      # current film — keeps "Pritam" in the query
+    "Pritam Arijit",             # common co-credit pairing
+    "Pritam Cocktail 2",         # upcoming project — keeps "Pritam" in query
+    # ── NOTE: Never add bare film names like "Bhooth Bangla" or "Cocktail 2"
+    #    without "Pritam" — they pull ALL articles about those films regardless
+    #    of whether Pritam is mentioned.
 ]
 
-# Search Domains - Expand to cover all major entertainment sites
-search_domains = [
-    "filmfare.com",
-    "thehindu.com",
-    "deccanchronicle.com",
-    "bollywoodhungama.com",
-    "imdb.com",
-    "zoomtventertainment.com",
-    "indiatoday.in",
-    "hindustantimes.com",
-    "mumbaimirror.com",
+# ── API Keys ───────────────────────────────────────────────────
+# NewsAPI — free 100 req/day → https://newsapi.org
+NEWSAPI_KEY = "e05d8b48ac3a4b12bbb9d0020951f084"
+
+# GNews — free 100 req/day → https://gnews.io
+GNEWS_KEY = "0812a06752dd9a464bff0b545d36bdcf"
+
+# OpenAI — for AI relevance filter → https://platform.openai.com/api-keys
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# OpenAI Model
+OPENAI_MODEL = "gpt-4.1"
+
+# Prompt for OpenAI — dynamically generated from KEYWORDS
+def build_ai_filter_prompt() -> str:
+    """Build AI filter prompt dynamically based on KEYWORDS list."""
+    # Extract film/project names and songs from keywords
+    films = [kw for kw in KEYWORDS if any(film in kw.lower() for film in ["bhooth", "cocktail"])]
+    films_list = ", ".join(films) if films else "Bhooth Bangla, Cocktail 2"
+    
+    # Extract song-related keywords (any with common Pritam song titles)
+    song_keywords = [kw for kw in KEYWORDS if any(song in kw.lower() for song in ["arijit", "cocktail", "bhooth"])]
+    
+    return f"""
+        You are a relevance filter for a news monitoring bot that tracks Pritam Chakraborty — the famous Bollywood music composer known for Jab We Met, Barfi!, Ae Dil Hai Mushkil, Cocktail, Bhooth Bangla, and many more.
+
+        You will receive a numbered list of articles (title + excerpt). For each one, reply with ONLY "YES" or "NO" on a separate line — one answer per article, in the same order.
+
+        We are currently tracking these keywords: {', '.join(KEYWORDS[:6])}... (and {len(KEYWORDS)-6} more)
+        Key film projects: {films_list}
+        Related songs: Tu Hi Disda, Ram Ji Aaike, and others from his tracked films
+
+        Reply YES if the article:
+        - Directly mentions "Pritam" (the composer) anywhere in title or content
+        - Is about a specific Pritam song (e.g., "Tu Hi Disda", "Ram Ji Aaike") — even if PRITAM's name is not explicitly mentioned
+        - Discusses movies like {films_list} AND mentions music/songs/soundtrack/composer role (indicates Pritam's artistic contribution)
+        - Credits Pritam alongside other musicians (e.g., "Pritam, Arijit Singh, Nikhita G") in a music/song context
+        - Mentions any tracked film title WITH keywords like: "song", "music", "soundtrack", "composer", "score", "musical", "singer", "vocal", "score"
+        - Is an interview, announcement, or news about Pritam's upcoming release or past work
+
+        Reply NO if the article:
+        - Is about a completely different person named Pritam (Pritam Singh the politician, Pritam the footballer, etc.) — check context carefully
+        - Mentions a tracked film/project BUT only discusses plot, box office, cast, release dates — no music/film-composer context
+        - Is generic Bollywood gossip where Pritam is not the focus
+        - Is spam, cocktail recipes, unrelated shopping content, or completely off-topic
+        - Mentions "Pritam" only once in passing in an article primarily about someone else
+
+        REMEMBER: If article mentions tracked film names OR tracked songs + music-related context, ACCEPT IT even without explicit "Pritam" mention.
+        Accept all Pritam song/soundtrack/film music content. Only YES or NO — no explanations.
+    """
+
+# Default prompt (kept for compatibility)
+DEFAULT_SYSTEM_PROMPT = build_ai_filter_prompt()
+
+# ── AI Filter ──────────────────────────────────────────────────
+# GPT-4.1 scans every article after fetch and removes anything not
+# genuinely about Pritam Chakraborty the composer.
+AI_FILTER_ENABLED = True
+
+# Optional: override the filter prompt here.
+# Leave commented out to use the default prompt in ai_filter.py.
+# AI_FILTER_PROMPT = "Your custom prompt here..."
+
+# ── Google Alerts RSS ──────────────────────────────────────────
+# No key needed. Set up manually:
+#   1. Go to https://www.google.com/alerts
+#   2. Create an alert for each keyword (e.g. "Pritam Chakraborty")
+#   3. Under Deliver to → choose "RSS feed"
+#   4. Copy the feed URL and paste it below
+# Each alert URL looks like:
+#   https://www.google.com/alerts/feeds/XXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXX
+GOOGLE_ALERTS_RSS_URLS = [
+    "https://www.google.com/alerts/feeds/09530471010999255653/5315091837360255028",
+    "https://www.google.com/alerts/feeds/09530471010999255653/9086967727411701928",
+    "https://www.google.com/alerts/feeds/09530471010999255653/11965898122560387578",
+    "https://www.google.com/alerts/feeds/09530471010999255653/10150323239566224244",
+    "https://www.google.com/alerts/feeds/09530471010999255653/11066479180287782864",
+    "https://www.google.com/alerts/feeds/09530471010999255653/11066479180287781169",
+    "https://www.google.com/alerts/feeds/09530471010999255653/10150323239566223068",
+    "https://www.google.com/alerts/feeds/09530471010999255653/10150323239566222888",
+    "https://www.google.com/alerts/feeds/09530471010999255653/7383859801355997924",
+    "https://www.google.com/alerts/feeds/09530471010999255653/14572711428882051808",
+    "https://www.google.com/alerts/feeds/09530471010999255653/2840398561910178062",
+    "https://www.google.com/alerts/feeds/09530471010999255653/14572711428882054020"
 ]
 
-# Search top k results
-top_k = 20
+# ── YouTube Channel IDs to monitor directly ────────────────────
+# These channels are fetched via public RSS — no key needed.
+# To find a channel ID: go to the channel page → view source → search "channelId"
+YOUTUBE_CHANNEL_IDS = [
+    "UCxxkv3sMgOdVK1cLQPmmH1Q",   # T-Series (Pritam's primary label)
+    "UCiEGXMH3HQp6FfKc2YdDeFQ",   # Sony Music India
+]
 
-# Path for all MD files related to the task
-task_data_path = "data"
+# ── Reddit Subreddits ──────────────────────────────────────────
+REDDIT_SUBREDDITS = [
+    "bollywood",
+    "india",
+    "hindimusic",
+    "music",
+    "IndianMusicians",
+]
 
-# Ensure data directory exists
-os.makedirs(task_data_path, exist_ok=True)
+# ── SMTP / Email ───────────────────────────────────────────────
+SMTP_HOST     = "smtp.gmail.com"
+SMTP_PORT     = 587
+SMTP_USERNAME = "mukherjeesagnik2@gmail.com"       # Your Gmail address
+SMTP_PASSWORD = "lbrlqrhvgyflfjdh"     # Gmail App Password (NOT your real password)
+EMAIL_FROM    = "Pritam Monitor <mukherjeesagnik2@gmail.com>"
+EMAIL_SUBJECT = "🎵 Pritam Monitor — Latest Buzz [{date}]"
 
-# ==================== EMAIL NOTIFICATION SETTINGS ====================
+RECIPIENT_EMAILS = [
+    "mukherjeesagnik2@gmail.com",
+    "palashchaturvedi@gmail.com"
+]
 
-# SMTP Configuration (Gmail/Outlook)
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")  # Default: Gmail
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))  # Default: TLS port
-SMTP_EMAIL = os.getenv("SMTP_EMAIL")  # Sender email (required)
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")  # App password (required)
+# ── Dedup file ─────────────────────────────────────────────────
+# JSON file that tracks all sent URLs. Auto-created on first run.
+# Delete this file to reset and re-send all articles from scratch.
+SEEN_URLS_FILE = "seen_urls.json"
 
-# Notification Configuration
-NOTIFICATION_EMAIL_RAW = os.getenv("NOTIFICATION_EMAIL")  # Can be comma-separated list
-# Parse comma-separated emails into a list
-NOTIFICATION_EMAILS = [
-    email.strip() 
-    for email in NOTIFICATION_EMAIL_RAW.split(',') 
-    if email.strip()
-] if NOTIFICATION_EMAIL_RAW else []
-NOTIFICATION_EMAIL = NOTIFICATION_EMAILS[0] if NOTIFICATION_EMAILS else None  # Primary email for backward compatibility
-EMAIL_SUBJECT_PREFIX = "🎬 Pritam News Alert"
+# ── Source toggles ─────────────────────────────────────────────
+# Set any to False to disable that source.
 
-# Email Retry Configuration
-MAX_EMAIL_RETRIES = 3
-EMAIL_RETRY_DELAY = 2  # seconds
+# Tier 1 — keyword-driven broad sources
+ENABLE_NEWSAPI           = True    # NewsAPI        (free key needed)
+ENABLE_GNEWS             = False   # GNews API      (free key needed) — DISABLED: 403 errors
+ENABLE_GOOGLE_ALERTS_RSS = True    # Google Alerts  (manual setup, no key)
+ENABLE_REDDIT            = True    # Reddit RSS     (no key)
+ENABLE_YOUTUBE           = False    # YouTube search + channels (no key)
 
-print(f"\n[Config] Email Settings:")
-print(f"  - SMTP_SERVER: {SMTP_SERVER}")
-print(f"  - SMTP_PORT: {SMTP_PORT}")
-print(f"  - SMTP_EMAIL loaded: {bool(SMTP_EMAIL)}")
-print(f"  - SMTP_PASSWORD loaded: {bool(SMTP_PASSWORD)}")
-print(f"  - NOTIFICATION_EMAILS: {NOTIFICATION_EMAILS}")
-
-# Validate email configuration
-if not SMTP_EMAIL or not SMTP_PASSWORD or not NOTIFICATION_EMAILS:
-    print("\n[ERROR] Email credentials NOT fully configured!")
-    print(f"  Missing: {', '.join([x for x, v in [('SMTP_EMAIL', SMTP_EMAIL), ('SMTP_PASSWORD', SMTP_PASSWORD), ('NOTIFICATION_EMAILS', NOTIFICATION_EMAILS)] if not v])}")
-    print("\n[HELP] Please ensure your .env file contains:")
-    print("  SMTP_EMAIL=mukherjeesagnik2@gmail.com")
-    print("  SMTP_PASSWORD=your-16-char-app-password")
-    print("  NOTIFICATION_EMAIL=email1@gmail.com,email2@gmail.com")
-    print("\nOr run from the ping-bot-net directory where .env is located!")
-
-# ==================== SCHEDULER SETTINGS ====================
-
-# Schedule interval (in hours)
-SCHEDULE_INTERVAL_HOURS = int(os.getenv("SCHEDULE_INTERVAL_HOURS", "3"))  # Default: every 3 hours
-
-# Scheduler timezone
-SCHEDULER_TIMEZONE = os.getenv("SCHEDULER_TIMEZONE", "UTC")
-
-# Database cleanup interval (in hours)
-DB_CLEANUP_INTERVAL_HOURS = 201  # Run cleanup every 201 hours
-
-# Retain data for N days
-DATA_RETENTION_DAYS = 30
-
-# Enable/disable scheduler at startup
-ENABLE_SCHEDULER = os.getenv("ENABLE_SCHEDULER", "true").lower() == "true"
-
-# Logging configuration
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-LOG_FILE = os.path.join(task_data_path, "ping_bot.log")
-
-print(f"\n[Config] Scheduler: {('ENABLED' if ENABLE_SCHEDULER else 'DISABLED')} (interval: {SCHEDULE_INTERVAL_HOURS}h)")
+# Tier 2 — direct named-outlet scrapers (all free, no keys)
+ENABLE_TOI               = True    # Times of India / Bombay Times
+ENABLE_FILMFARE          = True    # Filmfare
+ENABLE_ZOOM              = True    # Zoom TV Entertainment
+ENABLE_PINKVILLA         = True    # Pinkvilla
+ENABLE_BOLLYWOOD_HUNGAMA = True    # Bollywood Hungama
+ENABLE_NDTV              = True    # NDTV Entertainment
+ENABLE_IMDB              = True    # IMDB — Pritam's news page (direct scrape)
+ENABLE_INSTAGRAM         = True    # Instagram @pritamofficial via Picuki (best-effort)

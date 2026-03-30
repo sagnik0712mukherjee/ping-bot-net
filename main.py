@@ -1,239 +1,133 @@
+#!/usr/bin/env python3
+# ═══════════════════════════════════════════════════════════════
+#  main.py  —  Pritam Monitor Bot
+#
+#  Usage:
+#    python main.py               run once, send email if new articles
+#    python main.py --schedule    run on a loop every N hours
+#    python main.py --dry-run     fetch + print, no email sent
+# ═══════════════════════════════════════════════════════════════
 
-import sys
 import argparse
-from datetime import datetime
-from src.agents.super_agent import build_crew
-from src.notification.notifications import push_notification
-from src.database import db
-from config.settings import NOTIFICATION_EMAIL, NOTIFICATION_EMAILS
+import logging
+import time
+from datetime import datetime, timezone
 
-def application_init():
-    """
-    Main monitoring function - runs the search and notification cycle
-    """
-    result = None
-    articles_found = 0
-    articles_sent = 0
-    duplicates_skipped = 0
-    article_urls = []  # Track URLs for marking as sent after email succeeds
+import config.settings as settings
+from src.data_fetch.fetchers import fetch_all
+from src.utilities.dedup import load_seen, save_seen, filter_new, deduplicate_within_batch
+from src.utilities.emailer import build_html_email, send_email
+import src.ai_model.ai_filter as ai_filter
 
-    try:
-        print("[APP] Starting Pritam News Monitoring Bot...")
-        crew_super_agent = build_crew()
-        crew_result_str = str(crew_super_agent.kickoff())
-        
-        # Check if no articles were found
-        if "NO_ARTICLES_FOUND" in crew_result_str:
-            print(f"\n[APP] No articles found in the last 201 hours. Sending empty notification for testing...")
-            result = push_notification("[INFO] No new articles found about Pritam in the last 201 hours.")
-            db.log_run(articles_found=0, articles_sent=0, duplicates_skipped=0, status="no_content")
-            return "[Result] No articles found - Email sent (testing mode)"
-        
-        # Parse and store articles in database
-        articles_found, article_urls = _process_articles_for_sending(crew_result_str)
-        duplicates_skipped = articles_found - len(article_urls)
-        articles_sent = len(article_urls)
-        
-        print(f"\n[APP] Found {articles_found} articles ({duplicates_skipped} duplicates skipped)")
-        
-        # Only send notification if new articles were found
-        if articles_sent > 0:
-            print(f"[APP] Processing notification for {articles_sent} new articles...")
-            result = push_notification(crew_result_str)
-            
-            print(f"\n[APP] Push notification result: {result}")
-            
-            # Only mark as sent if email was successful
-            if "Email Sent" in str(result):
-                for url, title in article_urls:
-                    article_id = db.add_article(
-                        url=url,
-                        title=title[:100],
-                        publish_date=datetime.now().isoformat(),
-                        source="Search Results",
-                        content_snippet=title,
-                        is_controversial='⚠️' in title or 'controversy' in title.lower()
-                    )
-                    if article_id:
-                        # Mark as sent for ALL recipients
-                        for recipient_email in NOTIFICATION_EMAILS:
-                            db.mark_email_sent(article_id, recipient_email)
-                
-                print(f"[APP] ✓ Email sent successfully to {len(NOTIFICATION_EMAILS)} recipient(s), marked {articles_sent} articles as sent for all recipients")
-                db.log_run(
-                    articles_found=articles_found,
-                    articles_sent=articles_sent,
-                    duplicates_skipped=duplicates_skipped,
-                    status="success"
-                )
-            else:
-                # Email failed, don't mark as sent
-                print(f"[APP] ✗ Email failed, articles NOT marked as sent")
-                db.log_run(
-                    articles_found=articles_found,
-                    articles_sent=0,
-                    duplicates_skipped=duplicates_skipped,
-                    status="email_failed"
-                )
-        else:
-            print(f"\n[APP] All {articles_found} articles already sent. Sending update email (testing mode)...")
-            result = push_notification(f"[INFO] All {articles_found} articles about Pritam were already sent to you previously.")
-            print(f"[APP] Testing email result: {result}")
-            db.log_run(
-                articles_found=articles_found,
-                articles_sent=0,
-                duplicates_skipped=articles_found,
-                status="duplicates_only"
-            )
-            return "[Result] All articles are duplicates - Email sent (testing mode)"
-        
-    except Exception as e:
-        print(f"\n[Fatal Error] Application initialization failed: {str(e)}")
-        db.log_run(articles_found=0, articles_sent=0, status="error", error_message=str(e))
-        exit(1)
-    
-    return result
+# ── Logging ───────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("pritam_monitor")
 
 
-def _count_articles_in_summary(summary: str) -> int:
-    """Count number of URLs/articles in the summary"""
-    return summary.count("http://") + summary.count("https://")
+# ── Core run cycle ────────────────────────────────────────────
 
+def run_once(dry_run: bool = False):
+    logger.info("=" * 60)
+    logger.info("Pritam Monitor — Starting run")
+    logger.info(f"Lookback: {settings.LOOKBACK_M_HOURS}h | Keywords: {len(settings.KEYWORDS)}")
+    logger.info("=" * 60)
 
-def _process_articles_for_sending(summary: str) -> tuple:
-    """
-    Process articles and check for duplicates before sending.
-    Returns tuple of (total_articles_found, list_of_new_articles)
-    where new_articles = [(url, title), ...]
-    """
-    import re
-    
-    # Extract URLs from markdown format: [Title](URL) and also plain URLs
-    url_pattern = r'\[(.*?)\]\((https?://[^\)]+)\)|(?:^|\s)(https?://\S+)'
-    matches = re.findall(url_pattern, summary)
-    
-    total_articles = 0
-    new_articles = []
-    seen_urls = set()  # Prevent duplicates within this run
-    
-    for match in matches:
-        # match is either (title, url) from markdown or ('', '', url) from plain
-        if match[1]:  # Markdown format: [title](url)
-            title = match[0] if match[0] else "Article"
-            url = match[1]
-        else:  # Plain URL format
-            title = "Article"
-            url = match[2] if len(match) > 2 else ""
-        
-        if not url or url in seen_urls:
-            continue
-        
-        # Clean URL
-        url = url.rstrip('.,;:)')
-        seen_urls.add(url)
-        
-        total_articles += 1
-        
-        # Debug logging
-        print(f"[DEDUP] Checking URL: {url[:80]}...")
-        print(f"[DEDUP] Title: {title[:60]}...")
-        
-        # Check if article already sent to this recipient
-        if not db.has_been_sent(url, title, NOTIFICATION_EMAIL):
-            new_articles.append((url, title))
-            print(f"[DEDUP] ✓ NEW article - will send")
-        else:
-            print(f"[DEDUP] ✗ DUPLICATE (already sent)")
-    
-    print(f"\n[DEDUP] Summary: Total={total_articles}, New={len(new_articles)}, Duplicates={total_articles - len(new_articles)}\n")
-    return total_articles, new_articles
+    # 1. Fetch everything from all sources
+    all_articles = fetch_all()
+    logger.info(f"Total raw articles: {len(all_articles)}")
 
+    # 2. Deduplicate within this batch (same URL from multiple sources)
+    all_articles = deduplicate_within_batch(all_articles)
+    logger.info(f"After batch dedup: {len(all_articles)}")
 
-def main():
-    """Command-line interface for the bot"""
-    parser = argparse.ArgumentParser(description="Pritam News Monitoring Bot")
-    parser.add_argument(
-        '--mode',
-        choices=['once', 'schedule', 'test-email'],
-        default='once',
-        help='Run mode: once (single run), schedule (background), or test-email (SMTP test)'
-    )
-    parser.add_argument(
-        '--interval',
-        type=int,
-        default=3,
-        help='Scheduler interval in hours (default: 3)'
-    )
-    
-    args = parser.parse_args()
-    
-    if args.mode == 'test-email':
-        # Test SMTP connection
-        print("[TEST] Testing SMTP connection...")
+    # 3. AI filter — removes false positives via GPT-4.1
+    all_articles = ai_filter.apply_filter(all_articles)
+    logger.info(f"After AI filter: {len(all_articles)}")
+
+    # 4. Cross-run dedup (skip already-sent URLs)
+    seen = load_seen(settings.SEEN_URLS_FILE)
+    new_articles, seen = filter_new(all_articles, seen)
+    logger.info(f"New (not previously sent): {len(new_articles)}")
+
+    if not new_articles:
+        logger.info("Nothing new to report. Skipping email.")
+        return
+
+    # 5. Sort newest first
+    def _sort_key(a):
         try:
-            import smtplib
-            from config.settings import SMTP_SERVER, SMTP_PORT, SMTP_EMAIL, SMTP_PASSWORD, NOTIFICATION_EMAIL
-            
-            print(f"[TEST] Connecting to {SMTP_SERVER}:{SMTP_PORT}...")
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
-            print("[TEST] ✓ Connected!")
-            
-            print("[TEST] Starting TLS...")
-            server.starttls()
-            print("[TEST] ✓ TLS started!")
-            
-            print(f"[TEST] Logging in as {SMTP_EMAIL}...")
-            server.login(SMTP_EMAIL, SMTP_PASSWORD)
-            print("[TEST] ✓ Login successful!")
-            
-            server.quit()
-            print("[TEST] ✓ All checks passed! SMTP is working.")
-            
-        except Exception as e:
-            print(f"[TEST] ✗ SMTP test failed: {e}")
-            sys.exit(1)
-    
-    elif args.mode == 'once':
-        # Single run mode
-        print("[APP] Running in ONE-TIME mode...")
-        final_result = application_init()
-        print(f"\n\n{'='*70}")
-        print(f"[FINAL RESULT] {final_result}")
-        print(f"{'='*70}\n")
-        
-    elif args.mode == 'schedule':
-        # Scheduler mode
-        print("[APP] Running in SCHEDULED mode...")
-        print(f"[APP] Interval: every {args.interval} hours")
-        
-        try:
-            from src.scheduler import scheduler
-            
-            # Update interval if provided
-            if args.interval:
-                from config.settings import SCHEDULE_INTERVAL_HOURS
-                # Note: This is a simple approach, for production use env vars
-                scheduler.scheduler.reschedule_job('pritam_monitoring', 
-                                                   trigger=f'interval(hours={args.interval})')
-            
-            scheduler.start()
-            print("[APP] Scheduler started. Press Ctrl+C to stop.")
-            
-            # Keep the main thread alive
-            import time
-            while True:
-                time.sleep(1)
-                
-        except KeyboardInterrupt:
-            print("\n[APP] Shutting down scheduler...")
-            scheduler.stop()
-            print("[APP] Goodbye!")
-            sys.exit(0)
-        except Exception as e:
-            print(f"[ERROR] Scheduler error: {str(e)}")
-            sys.exit(1)
+            from dateutil import parser as dtp
+            return dtp.parse(a["published_at"])
+        except Exception:
+            return datetime(2000, 1, 1, tzinfo=timezone.utc)
 
+    new_articles.sort(key=_sort_key, reverse=True)
+
+    # 6. Build email
+    html    = build_html_email(new_articles, settings.LOOKBACK_M_HOURS)
+    subject = settings.EMAIL_SUBJECT.format(
+        date=datetime.now(timezone.utc).strftime("%b %d, %Y")
+    )
+
+    if dry_run:
+        logger.info("DRY RUN — printing articles, no email sent:")
+        for i, a in enumerate(new_articles, 1):
+            logger.info(f"  {i:3}. [{a['source']}] {a['title']}")
+            logger.info(f"       {a['url']}")
+        with open("email_preview.html", "w", encoding="utf-8") as f:
+            f.write(html)
+        logger.info("Email preview saved → email_preview.html")
+        return
+
+    # 7. Send email
+    send_email(
+        html_body  = html,
+        subject    = subject,
+        recipients = settings.RECIPIENT_EMAILS,
+        smtp_host  = settings.SMTP_HOST,
+        smtp_port  = settings.SMTP_PORT,
+        smtp_user  = settings.SMTP_USERNAME,
+        smtp_pass  = settings.SMTP_PASSWORD,
+        from_addr  = settings.EMAIL_FROM,
+    )
+
+    # 8. Persist seen URLs only AFTER successful send
+    save_seen(settings.SEEN_URLS_FILE, seen)
+    logger.info("Run complete.")
+
+
+# ── Scheduler ─────────────────────────────────────────────────
+
+def run_scheduled():
+    logger.info(f"Scheduler mode — running every {settings.RUN_EVERY_N_HOURS}h.")
+    while True:
+        try:
+            run_once()
+        except Exception as e:
+            logger.error(f"Run failed: {e}", exc_info=True)
+        logger.info(f"Sleeping {settings.RUN_EVERY_N_HOURS}h until next run …")
+        time.sleep(settings.RUN_EVERY_N_HOURS * 3600)
+
+
+# ── Entry point ───────────────────────────────────────────────
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Pritam Monitor Bot")
+    parser.add_argument(
+        "--schedule", action="store_true",
+        help="Run on a loop every N hours (set in settings.py)."
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Fetch and preview, but do NOT send email."
+    )
+    args = parser.parse_args()
 
+    if args.schedule:
+        run_scheduled()
+    else:
+        run_once(dry_run=args.dry_run)

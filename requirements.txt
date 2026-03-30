@@ -1,11 +1,4 @@
-crewai
-langchain
-langchain-community
-langchain-openai
-python-dotenv
-duckduckgo-search
+feedparser
 requests
-beautifulsoup4
 python-dateutil
-praw
-apscheduler
+openai
