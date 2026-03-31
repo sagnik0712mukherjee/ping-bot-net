@@ -69,10 +69,11 @@ def build_ai_filter_prompt() -> str:
         - Credits Pritam alongside other musicians in a music/song context
         - Mentions any tracked keyword WITH music-related terms: "song", "music", "soundtrack", "composer", "score", "musical", "singer", "vocal", "album"
         - Is an interview, announcement, or news about Pritam's work
+        - Lastly, even  if it doesn't mention "Pritam" by name, nor mentions music, but is clearly about a specific tracked project (like "Bhooth Bangla"), reply YES.
+        Basically, anything that is genuinely about Pritam Chakraborty the composer, his music, or his projects/albums/films (without his mention or mention of music as well) should be accepted.
 
         Reply NO if the article:
         - Is about a completely different person named Pritam
-        - Mentions tracked keywords BUT only discusses plot, box office, cast, release dates — no music/composer context
         - Is generic gossip where Pritam is not the focus
         - Is spam, unrelated recipes, shopping content, or off-topic
         - Mentions "Pritam" only in passing in an article primarily about someone else
