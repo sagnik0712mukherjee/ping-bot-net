@@ -133,6 +133,9 @@ To enable/disable AI filtering, toggle `AI_FILTER_ENABLED` in `settings.py`.
 
 ---
 
+## ✅ How to Run, locally?
+
+```
 # Run on a loop every N hours (set RUN_EVERY_N_HOURS in settings.py)
 python main.py --schedule
 
