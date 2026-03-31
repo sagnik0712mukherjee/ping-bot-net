@@ -20,9 +20,13 @@ KEYWORDS = [
     "Pritam new song",
     "Pritam album",
     "Pritam interview",
-    "Pritam Bhooth Bangla",      # current film — keeps "Pritam" in the query
-    "Pritam Arijit",             # common co-credit pairing
-    "Pritam Cocktail 2",         # upcoming project — keeps "Pritam" in query
+    "Pritam Bhooth Bangla",
+    "Pritam Arijit",
+    "Pritam Cocktail 2",
+    "Pritam Aashiqui",
+    "Pritam copy",
+    "Pritam copied",
+    "Pritam Original"
 ]
 
 # ── API Keys (read from GitHub Actions secrets / environment variables) ───────────────────────────────────────────────
@@ -69,7 +73,7 @@ def build_ai_filter_prompt() -> str:
         - Credits Pritam alongside other musicians in a music/song context
         - Mentions any tracked keyword WITH music-related terms: "song", "music", "soundtrack", "composer", "score", "musical", "singer", "vocal", "album"
         - Is an interview, announcement, or news about Pritam's work
-        - Lastly, even  if it doesn't mention "Pritam" by name, nor mentions music, but is clearly about a specific tracked project (like "Bhooth Bangla"), reply YES.
+        - Lastly, even  if it doesn't mention "Pritam" by name, nor mentions music, but is clearly about a specific tracked project (like "Bhooth Bangla", "Cocktail", etc.), reply YES.
         Basically, anything that is genuinely about Pritam Chakraborty the composer, his music, or his projects/albums/films (without his mention or mention of music as well) should be accepted.
 
         Reply NO if the article:
@@ -167,11 +171,11 @@ SEEN_URLS_FILE = "seen_urls.json"
 # Set any to False to disable that source.
 
 # Tier 1 — keyword-driven broad sources
-ENABLE_NEWSAPI           = False   # NewsAPI
-ENABLE_GNEWS             = False   # GNews API
+ENABLE_NEWSAPI           = True   # NewsAPI
+ENABLE_GNEWS             = True   # GNews API
 ENABLE_GOOGLE_ALERTS_RSS = True    # Google Alerts  (manual setup, no key)
 ENABLE_REDDIT            = True    # Reddit RSS     (no key)
-ENABLE_YOUTUBE           = False   # YouTube search + channels + Shorts (Piped API unstable — temporarily disabled)
+ENABLE_YOUTUBE           = True   # YouTube search + channels + Shorts (Piped API unstable — temporarily disabled)
 
 # Tier 2 — direct named-outlet scrapers (all free, no keys)
 ENABLE_TOI               = True    # Times of India / Bombay Times
