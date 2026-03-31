@@ -166,8 +166,8 @@ SEEN_URLS_FILE = "seen_urls.json"
 # Set any to False to disable that source.
 
 # Tier 1 — keyword-driven broad sources
-ENABLE_NEWSAPI           = True    # NewsAPI        (free key needed)
-ENABLE_GNEWS             = False   # GNews API      (free key needed) — DISABLED: 403 errors
+ENABLE_NEWSAPI           = False   # NewsAPI
+ENABLE_GNEWS             = False   # GNews API
 ENABLE_GOOGLE_ALERTS_RSS = True    # Google Alerts  (manual setup, no key)
 ENABLE_REDDIT            = True    # Reddit RSS     (no key)
 ENABLE_YOUTUBE           = False   # YouTube search + channels + Shorts (Piped API unstable — temporarily disabled)
