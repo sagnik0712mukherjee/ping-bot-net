@@ -827,107 +827,6 @@ def fetch_instagram() -> list[dict]:
     return []
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Twitter/X Monitoring
-# ─────────────────────────────────────────────────────────────────────────────
-
-def fetch_twitter() -> list[dict]:
-    """Fetch tweets mentioning Pritam or from @pritamofficial via Twitter RSS.
-    
-    Uses Google News for Twitter search (no API key needed) to find tweets
-    mentioning tracked keywords and accounts.
-    
-    Returns:
-        List of article dictionaries from Twitter.
-    """
-    if not getattr(settings, "TWITTER_SEARCH_TERMS", []):
-        logger.info("[Twitter] No search terms configured — skipping.")
-        return []
-    
-    results = []
-    cutoff = _cutoff_dt(settings.LOOKBACK_M_HOURS)
-    
-    for term in settings.TWITTER_SEARCH_TERMS:
-        # Search Twitter via Google News
-        query = f"{term} site:twitter.com OR site:x.com"
-        feed = feedparser.parse(_GN_URL.format(query=quote_plus(query)))
-        
-        for entry in feed.entries:
-            dt = _parse_feedparser_time(entry)
-            if not _is_fresh(dt, settings.LOOKBACK_M_HOURS):
-                continue
-            
-            title = entry.get("title", "").strip()
-            url = entry.get("link", "")
-            summary = entry.get("summary", "")
-            
-            if not title or not url:
-                continue
-            
-            results.append(_article(
-                source       = "Twitter",
-                title        = title,
-                url          = url,
-                excerpt      = _clean(summary),
-                published_at = _dt_to_iso(dt),
-            ))
-    
-    logger.info(f"[Twitter] {len(results)} tweets fetched.")
-    return results
-
-
-def fetch_hashtags() -> list[dict]:
-    """Fetch posts mentioning Pritam-related hashtags via Google News.
-    
-    Searches for configured hashtags to find fan posts, music releases,
-    articles about Pritam's songs and projects from various platforms.
-    
-    Returns:
-        List of article dictionaries mentioning tracked hashtags.
-    """
-    if not getattr(settings, "HASHTAGS", []):
-        logger.info("[Hashtags] No hashtags configured — skipping.")
-        return []
-    
-    results = []
-    cutoff = _cutoff_dt(settings.LOOKBACK_M_HOURS)
-    seen_urls: set[str] = set()
-    
-    for hashtag in settings.HASHTAGS:
-        # Search via Google News
-        feed = feedparser.parse(_GN_URL.format(query=quote_plus(hashtag)))
-        
-        for entry in feed.entries:
-            dt = _parse_feedparser_time(entry)
-            if not _is_fresh(dt, settings.LOOKBACK_M_HOURS):
-                continue
-            
-            url = entry.get("link", "")
-            if url in seen_urls:
-                continue
-            
-            title = entry.get("title", "").strip()
-            summary = entry.get("summary", "")
-            
-            if not title:
-                continue
-            
-            # Apply basic filter to reduce noise
-            combined = (title + " " + summary).lower()
-            if not _prefilter(combined, title):
-                continue
-            
-            seen_urls.add(url)
-            results.append(_article(
-                source       = f"Hashtag {hashtag}",
-                title        = title,
-                url          = url,
-                excerpt      = _clean(summary),
-                published_at = _dt_to_iso(dt),
-            ))
-    
-    logger.info(f"[Hashtags] {len(results)} posts fetched.")
-    return results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -969,10 +868,6 @@ def fetch_all() -> list[dict]:
         raw.extend(fetch_imdb())
     if settings.ENABLE_INSTAGRAM:
         raw.extend(fetch_instagram())
-    if settings.ENABLE_TWITTER:
-        raw.extend(fetch_twitter())
-    if settings.ENABLE_HASHTAGS:
-        raw.extend(fetch_hashtags())
 
     # Deduplicate by URL
     seen:    set[str]   = set()

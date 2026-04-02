@@ -1,16 +1,18 @@
 # ═══════════════════════════════════════════════════════════════
 #  PRITAM MONITOR  —  settings.py
 #  This is the ONLY file you need to edit.
-#  Every tunable in the whole project lives here.
 # ═══════════════════════════════════════════════════════════════
 import os
+
 # ── Schedule ──────────────────────────────────────────────────
 RUN_EVERY_N_HOURS = 1       # How often the bot runs (hours)
-LOOKBACK_M_HOURS  = 5       # How far back to look for content (hours)
+LOOKBACK_M_HOURS  = 5       # How far back to look (hours) — overlap prevents gaps
 
 # ── Keywords ──────────────────────────────────────────────────
+# All keywords with "Pritam" to keep AI filter clean.
+# Hashtags and social mentions are now folded in here so they
+# benefit from AI filtering instead of being a separate noisy system.
 KEYWORDS = [
-    # ── Core identity keywords (all contain "Pritam" — tight, no false positives)
     "Pritam Chakraborty",
     "Pritam composer",
     "Pritam music director",
@@ -26,73 +28,58 @@ KEYWORDS = [
     "Pritam Aashiqui",
     "Pritam copy",
     "Pritam copied",
-    "Pritam Original"
+    "Pritam Original",
+    # Social/hashtag mentions — folded into keywords so AI filter covers them
+    "#PritamMusic",
+    "#PritamComposer",
+    "@ipritamofficial",
 ]
 
-# ── API Keys (read from GitHub Actions secrets / environment variables) ───────────────────────────────────────────────
-# NewsAPI — free 100 req/day → https://newsapi.org
-NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
-
-# GNews — free 100 req/day → https://gnews.io (optional)
-GNEWS_KEY = os.getenv("GNEWS_KEY", "")
-
-# OpenAI — for AI relevance filter → https://platform.openai.com/api-keys
+# ── API Keys (read from environment / GitHub Actions secrets) ──
+NEWSAPI_KEY    = os.getenv("NEWSAPI_KEY", "")
+GNEWS_KEY      = os.getenv("GNEWS_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL   = "gpt-4.1"
 
-# OpenAI Model
-OPENAI_MODEL = "gpt-4.1"
+# ── OpenAI Token Pricing (for cost display in email footer) ────
+OPENAI_INPUT_TOKEN_COST  = float(os.getenv("OPENAI_INPUT_TOKEN_COST",  "0.000003"))
+OPENAI_OUTPUT_TOKEN_COST = float(os.getenv("OPENAI_OUTPUT_TOKEN_COST", "0.000006"))
 
-# ── GPT-4.1 Token Pricing (for cost tracking) ────────────────────────────────
-# As of March 2025: $0.003 per 1K input tokens, $0.006 per 1K output tokens
-# Read from env vars (so you can change without code edit)
-OPENAI_INPUT_TOKEN_COST = float(os.getenv("OPENAI_INPUT_TOKEN_COST", "0.000003"))   # per token (div 1000)
-OPENAI_OUTPUT_TOKEN_COST = float(os.getenv("OPENAI_OUTPUT_TOKEN_COST", "0.000006"))  # per token (div 1000)
-
-# Prompt for OpenAI — dynamically generated from KEYWORDS
+# ── AI Filter prompt ───────────────────────────────────────────
 def build_ai_filter_prompt() -> str:
-    """Build AI filter prompt dynamically based on KEYWORDS list."""
-    # Extract all keywords for the prompt
-    keywords_display = ", ".join(KEYWORDS[:6]) + f"... (and {len(KEYWORDS)-6} more)" if len(KEYWORDS) > 6 else ", ".join(KEYWORDS)
-    
-    # Extract film/project names from keywords (any with "Pritam" + film keywords)
-    film_keywords = [kw for kw in KEYWORDS if any(film in kw.lower() for film in ["bhooth", "cocktail", "barfi", "jab", "arijit"])]
+    keywords_display = ", ".join(KEYWORDS[:6]) + f"... (and {len(KEYWORDS)-6} more)"
+    film_keywords = [kw for kw in KEYWORDS if any(
+        f in kw.lower() for f in ["bhooth", "cocktail", "barfi", "jab", "arijit"]
+    )]
     films_list = ", ".join(film_keywords) if film_keywords else "tracked projects"
-    
-    return f"""
-        You are a relevance filter for a news monitoring bot that tracks Pritam Chakraborty — a famous Bollywood music composer.
+    return f"""You are a relevance filter for a news monitoring bot that tracks Pritam Chakraborty — a famous Bollywood music composer known for Jab We Met, Barfi!, Ae Dil Hai Mushkil, Cocktail, Bhooth Bangla, etc.
 
-        You will receive a numbered list of articles (title + excerpt). For each one, reply with ONLY "YES" or "NO" on a separate line — one answer per article, in the same order.
+You will receive a numbered list of articles (title + excerpt). For each one, reply with ONLY "YES" or "NO" on a separate line — one answer per article, in the same order.
 
-        We are currently tracking these keywords: {keywords_display}
-        Key tracked projects: {films_list}
+Tracking keywords: {keywords_display}
+Key projects: {films_list}
 
-        Reply YES if the article:
-        - Directly mentions "Pritam" (the composer) anywhere in title or content
-        - Is about a specific Pritam song or music composition — even without explicit "Pritam" mention
-        - Discusses any of the tracked projects/keywords AND mentions music/songs/soundtrack/composer role
-        - Credits Pritam alongside other musicians in a music/song context
-        - Mentions any tracked keyword WITH music-related terms: "song", "music", "soundtrack", "composer", "score", "musical", "singer", "vocal", "album"
-        - Is an interview, announcement, or news about Pritam's work
-        - Lastly, even  if it doesn't mention "Pritam" by name, nor mentions music, but is clearly about a specific tracked project (like "Bhooth Bangla", "Cocktail", etc.), reply YES.
-        Basically, anything that is genuinely about Pritam Chakraborty the composer, his music, or his projects/albums/films (without his mention or mention of music as well) should be accepted.
+Reply YES if:
+- Directly mentions Pritam Chakraborty (the composer) by name
+- Is about a specific Pritam song, composition, album, or score
+- Discusses a tracked project AND mentions music/songs/soundtrack/composer role
+- Is an interview, announcement, or news specifically about Pritam's work
 
-        Reply NO if the article:
-        - Is about a completely different person named Pritam
-        - Is generic gossip where Pritam is not the focus
-        - Is spam, unrelated recipes, shopping content, or off-topic
-        - Mentions "Pritam" only in passing in an article primarily about someone else
+Reply NO if:
+- About a different person named Pritam (Pritam Singh politician, Pritam the footballer/Chennaiyin FC)
+- Generic Bollywood gossip where Pritam is not the subject
+- Spam, recipes, shopping, sports, politics, crime news
+- Pritam mentioned only in passing in an article primarily about someone else
 
-        REMEMBER: If article mentions tracked keywords/projects + music-related context, ACCEPT IT even without explicit "Pritam" name.
-        Accept all music-related content. Only YES or NO — no explanations.
-    """
+Only YES or NO — no explanations."""
 
-# Default prompt (kept for compatibility)
 DEFAULT_SYSTEM_PROMPT = build_ai_filter_prompt()
-
-# ── AI Filter ──────────────────────────────────────────────────
-# GPT-4.1 scans every article after fetch and removes anything not
-# genuinely about Pritam Chakraborty the composer.
 AI_FILTER_ENABLED = True
+
+# ── Telegram ────────────────────────────────────────────────────
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
+ENABLE_TELEGRAM    = True   # set False to disable Telegram notifications
 
 # ── Google Alerts RSS ──────────────────────────────────────────
 GOOGLE_ALERTS_RSS_URLS = [
@@ -107,13 +94,12 @@ GOOGLE_ALERTS_RSS_URLS = [
     "https://www.google.com/alerts/feeds/09530471010999255653/7383859801355997924",
     "https://www.google.com/alerts/feeds/09530471010999255653/14572711428882051808",
     "https://www.google.com/alerts/feeds/09530471010999255653/2840398561910178062",
-    "https://www.google.com/alerts/feeds/09530471010999255653/14572711428882054020"
+    "https://www.google.com/alerts/feeds/09530471010999255653/14572711428882054020",
 ]
 
-# ── YouTube Channel IDs to monitor directly ────────────────────
-# These channels are fetched via public RSS — no key needed.
+# ── YouTube Channel IDs ────────────────────────────────────────
 YOUTUBE_CHANNEL_IDS = [
-    "UCxxkv3sMgOdVK1cLQPmmH1Q",   # T-Series (Pritam's primary label)
+    "UCxxkv3sMgOdVK1cLQPmmH1Q",   # T-Series
     "UCiEGXMH3HQp6FfKc2YdDeFQ",   # Sony Music India
 ]
 
@@ -126,30 +112,7 @@ REDDIT_SUBREDDITS = [
     "IndianMusicians",
 ]
 
-# ── Twitter/X Monitoring ──────────────────────────────────────
-# Monitor @pritamofficial and related accounts + search mentions
-TWITTER_ACCOUNTS = [
-    "ipritamofficial",
-]
-
-TWITTER_SEARCH_TERMS = [
-    "Pritam Chakraborty",
-    "Pritam music",
-    "Pritam songs",
-    "@pritamofficial",
-]
-
-# ── Hashtag Monitoring via Google News ────────────────────────
-# Search for these hashtags to find fan posts, music releases, etc.
-HASHTAGS = [
-    "#PritamMusic",
-    "#PritamComposer",
-    "#PritamSongs",
-    "#BhootBangla",
-    "#Cocktail2",
-]
-
-# ── SMTP / Email (read from GitHub Actions secrets / environment variables) ───────────────────────────────────────────────
+# ── SMTP / Email ───────────────────────────────────────────────
 SMTP_HOST     = "smtp.gmail.com"
 SMTP_PORT     = 587
 SMTP_USERNAME = "mukherjeesagnik2@gmail.com"
@@ -158,33 +121,25 @@ EMAIL_FROM    = "Pritam News Alerts <mukherjeesagnik2@gmail.com>"
 EMAIL_SUBJECT = "🎵 Pritam News Alerts — Latest Buzz [{date}]"
 
 RECIPIENT_EMAILS = [
-    "mukherjeesagnik2@gmail.com",
-    "palashchaturvedi@gmail.com"
+    "mukherjeesagnik2@gmail.com",   # [0] — always receives heartbeat + alerts
+    "palashchaturvedi@gmail.com",   # [1] — only receives full digest when news found
 ]
 
 # ── Dedup file ─────────────────────────────────────────────────
-# JSON file that tracks all sent URLs. Auto-created on first run.
-# Delete this file to reset and re-send all articles from scratch.
 SEEN_URLS_FILE = "seen_urls.json"
 
 # ── Source toggles ─────────────────────────────────────────────
-# Set any to False to disable that source.
+ENABLE_NEWSAPI           = True
+ENABLE_GNEWS             = True
+ENABLE_GOOGLE_ALERTS_RSS = True
+ENABLE_REDDIT            = True
+ENABLE_YOUTUBE           = True
 
-# Tier 1 — keyword-driven broad sources
-ENABLE_NEWSAPI           = True   # NewsAPI
-ENABLE_GNEWS             = True   # GNews API
-ENABLE_GOOGLE_ALERTS_RSS = True    # Google Alerts  (manual setup, no key)
-ENABLE_REDDIT            = True    # Reddit RSS     (no key)
-ENABLE_YOUTUBE           = True   # YouTube search + channels + Shorts (Piped API unstable — temporarily disabled)
-
-# Tier 2 — direct named-outlet scrapers (all free, no keys)
-ENABLE_TOI               = True    # Times of India / Bombay Times
-ENABLE_FILMFARE          = True    # Filmfare
-ENABLE_ZOOM              = True    # Zoom TV Entertainment
-ENABLE_PINKVILLA         = True    # Pinkvilla
-ENABLE_BOLLYWOOD_HUNGAMA = True    # Bollywood Hungama
-ENABLE_NDTV              = True    # NDTV Entertainment
-ENABLE_IMDB              = True    # IMDB — Pritam's news page (direct scrape)
-ENABLE_INSTAGRAM         = False   # Instagram @pritamofficial (currently blocked, revisit later)
-ENABLE_TWITTER           = True    # Twitter/X mentions & accounts
-ENABLE_HASHTAGS          = True    # Hashtag search via Google News
+ENABLE_TOI               = True
+ENABLE_FILMFARE          = True
+ENABLE_ZOOM              = True
+ENABLE_PINKVILLA         = True
+ENABLE_BOLLYWOOD_HUNGAMA = True
+ENABLE_NDTV              = True
+ENABLE_IMDB              = True
+ENABLE_INSTAGRAM         = False   # blocked, revisit later
