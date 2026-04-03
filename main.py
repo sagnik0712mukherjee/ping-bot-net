@@ -123,9 +123,7 @@ def send_heartbeat(run_number: int, articles_found: int,
     except Exception as e:
         logger.warning(f"[Heartbeat] ⚠️ Failed: {e}")
 
-    # Also ping Telegram heartbeat
-    tg_status = f"{'🟢' if articles_found > 0 else '⚪'} Pritam Bot run #{run_number} — {articles_found} new articles — {ist_now}"
-    send_telegram(tg_status)
+    # NOTE: No Telegram here — Telegram only fires when actual news is found.
 
 
 # ── Core run cycle ─────────────────────────────────────────────
