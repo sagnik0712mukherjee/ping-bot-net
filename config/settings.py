@@ -29,6 +29,12 @@ KEYWORDS = [
     "Pritam copy",
     "Pritam copied",
     "Pritam Original",
+    # Plagiarism / controversy angle
+    "Pritam chori song",
+    "Pritam chor",
+    "Pritam copycat",
+    "Pritam dosh",
+    "Pritam song copy",
     # Social/hashtag mentions — folded into keywords so AI filter covers them
     "#PritamMusic",
     "#PritamComposer",
@@ -154,4 +160,4 @@ ENABLE_PINKVILLA = True
 ENABLE_BOLLYWOOD_HUNGAMA = True
 ENABLE_NDTV = True
 ENABLE_IMDB = True
-ENABLE_INSTAGRAM = False  # blocked, revisit later
+ENABLE_INSTAGRAM = False
