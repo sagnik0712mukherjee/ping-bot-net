@@ -25,6 +25,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 from urllib.parse import quote_plus, unquote
 import config.settings as settings
+from src.utilities.dedup import _normalise_url
 
 logger = logging.getLogger(__name__)
 
@@ -869,14 +870,17 @@ def fetch_all() -> list[dict]:
     if settings.ENABLE_INSTAGRAM:
         raw.extend(fetch_instagram())
 
-    # Deduplicate by URL
+    # Deduplicate by normalised URL (consistent with dedup.py / seen_urls.json)
     seen:    set[str]   = set()
     deduped: list[dict] = []
     for item in raw:
         url = item.get("url", "").strip()
-        if not url or url in seen:
+        if not url:
             continue
-        seen.add(url)
+        norm = _normalise_url(url)
+        if norm in seen:
+            continue
+        seen.add(norm)
         deduped.append(item)
 
     logger.info(f"[fetch_all] {len(raw)} raw → {len(deduped)} unique articles.")

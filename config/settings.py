@@ -5,8 +5,8 @@
 import os
 
 # ── Schedule ──────────────────────────────────────────────────
-RUN_EVERY_N_HOURS = 1       # How often the bot runs (hours)
-LOOKBACK_M_HOURS  = 5       # How far back to look (hours) — overlap prevents gaps
+RUN_EVERY_N_HOURS = 1  # How often the bot runs (hours)
+LOOKBACK_M_HOURS = 5  # How far back to look (hours) — overlap prevents gaps
 
 # ── Keywords ──────────────────────────────────────────────────
 # All keywords with "Pritam" to keep AI filter clean.
@@ -36,21 +36,26 @@ KEYWORDS = [
 ]
 
 # ── API Keys (read from environment / GitHub Actions secrets) ──
-NEWSAPI_KEY    = os.getenv("NEWSAPI_KEY", "")
-GNEWS_KEY      = os.getenv("GNEWS_KEY", "")
+NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
+GNEWS_KEY = os.getenv("GNEWS_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL   = "gpt-4.1"
+OPENAI_MODEL = "gpt-4.1"
 
 # ── OpenAI Token Pricing (for cost display in email footer) ────
-OPENAI_INPUT_TOKEN_COST  = float(os.getenv("OPENAI_INPUT_TOKEN_COST",  "0.000003"))
+OPENAI_INPUT_TOKEN_COST = float(os.getenv("OPENAI_INPUT_TOKEN_COST", "0.000003"))
 OPENAI_OUTPUT_TOKEN_COST = float(os.getenv("OPENAI_OUTPUT_TOKEN_COST", "0.000006"))
+
 
 # ── AI Filter prompt ───────────────────────────────────────────
 def build_ai_filter_prompt() -> str:
-    keywords_display = ", ".join(KEYWORDS[:6]) + f"... (and {len(KEYWORDS)-6} more)"
-    film_keywords = [kw for kw in KEYWORDS if any(
-        f in kw.lower() for f in ["bhooth", "cocktail", "barfi", "jab", "arijit"]
-    )]
+    keywords_display = ", ".join(KEYWORDS[:6]) + f"... (and {len(KEYWORDS) - 6} more)"
+    film_keywords = [
+        kw
+        for kw in KEYWORDS
+        if any(
+            f in kw.lower() for f in ["bhooth", "cocktail", "barfi", "jab", "arijit"]
+        )
+    ]
     films_list = ", ".join(film_keywords) if film_keywords else "tracked projects"
     return f"""You are a relevance filter for a news monitoring bot that tracks Pritam Chakraborty — a famous Bollywood music composer known for Jab We Met, Barfi!, Ae Dil Hai Mushkil, Cocktail, Bhooth Bangla, etc.
 
@@ -73,13 +78,20 @@ Reply NO if:
 
 Only YES or NO — no explanations."""
 
+
 DEFAULT_SYSTEM_PROMPT = build_ai_filter_prompt()
 AI_FILTER_ENABLED = True
 
 # ── Telegram ────────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
-ENABLE_TELEGRAM    = True   # set False to disable Telegram notifications
+
+TELEGRAM_CHAT_IDS = [
+    os.getenv("TELEGRAM_CHAT_ID_1", ""),
+    os.getenv("TELEGRAM_CHAT_ID_2", ""),
+]
+TELEGRAM_CHAT_IDS = [cid for cid in TELEGRAM_CHAT_IDS if cid]  # drop blanks
+
+ENABLE_TELEGRAM = True  # set False to disable Telegram notifications entirely
 
 # ── Google Alerts RSS ──────────────────────────────────────────
 GOOGLE_ALERTS_RSS_URLS = [
@@ -99,8 +111,8 @@ GOOGLE_ALERTS_RSS_URLS = [
 
 # ── YouTube Channel IDs ────────────────────────────────────────
 YOUTUBE_CHANNEL_IDS = [
-    "UCxxkv3sMgOdVK1cLQPmmH1Q",   # T-Series
-    "UCiEGXMH3HQp6FfKc2YdDeFQ",   # Sony Music India
+    "UCxxkv3sMgOdVK1cLQPmmH1Q",  # T-Series
+    "UCiEGXMH3HQp6FfKc2YdDeFQ",  # Sony Music India
 ]
 
 # ── Reddit Subreddits ──────────────────────────────────────────
@@ -113,33 +125,33 @@ REDDIT_SUBREDDITS = [
 ]
 
 # ── SMTP / Email ───────────────────────────────────────────────
-SMTP_HOST     = "smtp.gmail.com"
-SMTP_PORT     = 587
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 587
 SMTP_USERNAME = "mukherjeesagnik2@gmail.com"
 SMTP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")
-EMAIL_FROM    = "Pritam News Alerts <mukherjeesagnik2@gmail.com>"
+EMAIL_FROM = "Pritam News Alerts <mukherjeesagnik2@gmail.com>"
 EMAIL_SUBJECT = "🎵 Pritam News Alerts — Latest Buzz [{date}]"
 
 RECIPIENT_EMAILS = [
-    "mukherjeesagnik2@gmail.com",   # [0] — always receives heartbeat + alerts
-    "palashchaturvedi@gmail.com",   # [1] — only receives full digest when news found
+    "mukherjeesagnik2@gmail.com",  # [0] — always receives heartbeat + alerts
+    "palashchaturvedi@gmail.com",  # [1] — only receives full digest when news found
 ]
 
 # ── Dedup file ─────────────────────────────────────────────────
 SEEN_URLS_FILE = "seen_urls.json"
 
 # ── Source toggles ─────────────────────────────────────────────
-ENABLE_NEWSAPI           = True
-ENABLE_GNEWS             = True
+ENABLE_NEWSAPI = True
+ENABLE_GNEWS = True
 ENABLE_GOOGLE_ALERTS_RSS = True
-ENABLE_REDDIT            = True
-ENABLE_YOUTUBE           = True
+ENABLE_REDDIT = True
+ENABLE_YOUTUBE = True
 
-ENABLE_TOI               = True
-ENABLE_FILMFARE          = True
-ENABLE_ZOOM              = True
-ENABLE_PINKVILLA         = True
+ENABLE_TOI = True
+ENABLE_FILMFARE = True
+ENABLE_ZOOM = True
+ENABLE_PINKVILLA = True
 ENABLE_BOLLYWOOD_HUNGAMA = True
-ENABLE_NDTV              = True
-ENABLE_IMDB              = True
-ENABLE_INSTAGRAM         = False   # blocked, revisit later
+ENABLE_NDTV = True
+ENABLE_IMDB = True
+ENABLE_INSTAGRAM = False  # blocked, revisit later

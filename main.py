@@ -33,23 +33,37 @@ IST = timezone(timedelta(hours=5, minutes=30))
 # ── Telegram ──────────────────────────────────────────────────
 
 def send_telegram(message: str) -> None:
-    """Send a Telegram message to the configured chat. Silent on failure."""
-    token = settings.TELEGRAM_BOT_TOKEN
-    chat  = settings.TELEGRAM_CHAT_ID
-    if not token or not chat or not getattr(settings, "ENABLE_TELEGRAM", True):
+    """Send a Telegram message to ALL configured chat IDs. Silent on failure per recipient."""
+    token    = settings.TELEGRAM_BOT_TOKEN
+    chat_ids = getattr(settings, "TELEGRAM_CHAT_IDS", [])
+
+    # Back-compat: also honour the old single TELEGRAM_CHAT_ID if CHAT_IDS is missing/empty
+    if not chat_ids:
+        single = getattr(settings, "TELEGRAM_CHAT_ID", "")
+        if single:
+            chat_ids = [single]
+
+    if not token or not chat_ids or not getattr(settings, "ENABLE_TELEGRAM", True):
         return
-    try:
-        resp = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat, "text": message, "parse_mode": "HTML"},
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            logger.info("[Telegram] ✅ Message sent.")
-        else:
-            logger.warning(f"[Telegram] ⚠️ Status {resp.status_code}: {resp.text[:100]}")
-    except Exception as e:
-        logger.warning(f"[Telegram] ⚠️ Failed: {e}")
+
+    for chat_id in chat_ids:
+        if not chat_id:
+            continue
+        try:
+            resp = requests.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={"chat_id": chat_id, "text": message, "parse_mode": "HTML"},
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                logger.info(f"[Telegram] ✅ Sent to chat_id {chat_id}.")
+            else:
+                logger.warning(
+                    f"[Telegram] ⚠️ chat_id {chat_id} → "
+                    f"Status {resp.status_code}: {resp.text[:100]}"
+                )
+        except Exception as e:
+            logger.warning(f"[Telegram] ⚠️ chat_id {chat_id} failed: {e}")
 
 
 def build_telegram_digest(articles: list[dict], count_before_filter: int) -> str:
