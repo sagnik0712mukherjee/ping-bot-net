@@ -167,7 +167,7 @@ nohup python main.py --schedule > bot.log 2>&1 &
 | Bollywood Hungama | Direct RSS | None |
 | NDTV Entertainment | Direct RSS | None |
 | IMDB | Direct page scrape | None |
-| Instagram @pritamofficial | Picuki mirror (best-effort) | None |
+| Instagram @ipritamofficial | Picuki mirror (best-effort) | None |
 
 ---
 

@@ -35,32 +35,46 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4. Run the bot
+      # 4. Pull latest seen_urls.json before running
+      #    Ensures we always have the most recent dedup state even if a
+      #    concurrent run just pushed an update.
+      - name: 🔄 Pull latest seen_urls.json
+        run: git pull --rebase origin main || true
+
+      # 5. Run the bot
       - name: 🚀 Run Pritam News Alerts Bot
         env:
-          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
-          NEWSAPI_KEY:       ${{ secrets.NEWSAPI_KEY }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          OPENAI_API_KEY:      ${{ secrets.OPENAI_API_KEY }}
+          NEWSAPI_KEY:         ${{ secrets.NEWSAPI_KEY }}
+          GNEWS_KEY:           ${{ secrets.GNEWS_KEY }}
+          GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID_1:  ${{ secrets.TELEGRAM_CHAT_ID_1 }}
+          TELEGRAM_CHAT_ID_2:  ${{ secrets.TELEGRAM_CHAT_ID_2 }}
         run: |
-          echo "⏱️ Starting Pritam News Alerts Bot at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "Starting Pritam News Alerts Bot at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           python3 main.py 2>&1 | tee monitor_log.txt
-          echo "✅ Pritam News Alerts Bot completed at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "Pritam News Alerts Bot completed at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
 
-      # 5. ── KEY FIX: commit seen_urls.json back to repo ──────────────────────
-      # Without this, every run starts from a blank dedup state and resends
-      # all articles from the lookback window → duplicate emails.
+      # 6. Commit seen_urls.json back to repo
+      # Pull + rebase before push so concurrent runs don't clobber each other.
+      # Without a successful push, the next run won't know what was already
+      # sent and will re-send the same articles (duplicate emails).
       - name: 💾 Persist seen_urls.json to repo
         if: always()
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add seen_urls.json || true
-          git diff --cached --quiet || git commit -m "chore: update seen_urls.json [skip ci]"
-          git push || true
+          if git diff --cached --quiet; then
+            echo "seen_urls.json unchanged — nothing to commit."
+          else
+            git commit -m "chore: update seen_urls.json [skip ci]"
+            git pull --rebase origin main || true
+            git push origin main
+          fi
 
-      # 6. Upload logs as artifact
+      # 7. Upload logs as artifact
       - name: 📋 Save logs as artifact
         if: always()
         uses: actions/upload-artifact@v4

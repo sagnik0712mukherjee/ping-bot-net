@@ -17,31 +17,32 @@ logger = logging.getLogger(__name__)
 
 # ── Source badge colours ──────────────────────────────────────
 _SOURCE_COLORS = {
-    "Google News":                  ("#e8f5e9", "#2e7d32"),
-    "Google Alerts":                ("#e3f2fd", "#1565c0"),
-    "NewsAPI":                      ("#fff3e0", "#e65100"),
-    "GNews":                        ("#fff8e1", "#f57f17"),
-    "Reddit":                       ("#fce4ec", "#c62828"),
-    "Twitter":                      ("#e1f5fe", "#0288d1"),
-    "Hashtag":                      ("#f3e5f5", "#7b1fa2"),
-    "YouTube":                      ("#ffebee", "#b71c1c"),
-    "YouTube Shorts":               ("#ffcdd2", "#d32f2f"),
-    "Times of India":               ("#e8eaf6", "#283593"),
-    "Filmfare":                     ("#fdf6e3", "#8d6418"),
-    "Zoom TV Entertainment":        ("#f3e5f5", "#6a1b9a"),
-    "Pinkvilla":                    ("#fce4ec", "#880e4f"),
-    "Bollywood Hungama":            ("#fff3e0", "#bf360c"),
-    "NDTV Entertainment":           ("#ffebee", "#b71c1c"),
-    "IMDB":                         ("#fffde7", "#827717"),
-    "Instagram (@pritamofficial)":  ("#fce4ec", "#ad1457"),
+    "Google News": ("#e8f5e9", "#2e7d32"),
+    "Google Alerts": ("#e3f2fd", "#1565c0"),
+    "NewsAPI": ("#fff3e0", "#e65100"),
+    "GNews": ("#fff8e1", "#f57f17"),
+    "Reddit": ("#fce4ec", "#c62828"),
+    "Twitter": ("#e1f5fe", "#0288d1"),
+    "Hashtag": ("#f3e5f5", "#7b1fa2"),
+    "YouTube": ("#ffebee", "#b71c1c"),
+    "YouTube Shorts": ("#ffcdd2", "#d32f2f"),
+    "Times of India": ("#e8eaf6", "#283593"),
+    "Filmfare": ("#fdf6e3", "#8d6418"),
+    "Zoom TV Entertainment": ("#f3e5f5", "#6a1b9a"),
+    "Pinkvilla": ("#fce4ec", "#880e4f"),
+    "Bollywood Hungama": ("#fff3e0", "#bf360c"),
+    "NDTV Entertainment": ("#ffebee", "#b71c1c"),
+    "IMDB": ("#fffde7", "#827717"),
+    "Instagram (@ipritamofficial)": ("#fce4ec", "#ad1457"),
 }
+
 
 def _badge(source: str) -> str:
     """Generate HTML badge for article source with colors.
-    
+
     Args:
         source: Name of the article source.
-        
+
     Returns:
         HTML string for a styled source badge.
     """
@@ -52,17 +53,17 @@ def _badge(source: str) -> str:
             break
     return (
         f'<span style="background:{bg};color:{fg};padding:2px 9px;'
-        f'border-radius:10px;font-size:11px;font-weight:700;'
+        f"border-radius:10px;font-size:11px;font-weight:700;"
         f'letter-spacing:0.4px;">{source}</span>'
     )
 
 
 def _fmt_date(iso_str: str) -> str:
     """Format an ISO datetime string to human-readable format in IST.
-    
+
     Args:
         iso_str: ISO 8601 format datetime string (UTC).
-        
+
     Returns:
         Formatted date string in IST (e.g. "Mar 15, 2026 · 10:30 AM IST") or "—" if empty.
     """
@@ -80,18 +81,24 @@ def _fmt_date(iso_str: str) -> str:
 
 # ── HTML builder ──────────────────────────────────────────────
 
-def build_html_email(articles: list[dict], lookback_hours: int, exec_time: float = 0.0, token_usage: dict = None) -> str:
+
+def build_html_email(
+    articles: list[dict],
+    lookback_hours: int,
+    exec_time: float = 0.0,
+    token_usage: dict = None,
+) -> str:
     """Build a styled HTML email from a list of articles.
-    
+
     Creates a professional HTML email digest with article cards, source breakdown,
     and formatted styling in IST timezone. Includes execution time and OpenAI cost tracking.
-    
+
     Args:
         articles: List of article dictionaries with keys: title, url, source, excerpt, published_at.
         lookback_hours: Number of hours this batch covers (for display).
         exec_time: Execution time in seconds (for display).
         token_usage: Dictionary with keys: input_tokens, output_tokens, cost_usd.
-        
+
     Returns:
         Complete HTML email as a string.
     """
@@ -99,7 +106,7 @@ def build_html_email(articles: list[dict], lookback_hours: int, exec_time: float
         token_usage = {"input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0}
     ist = timezone(timedelta(hours=5, minutes=30))
     now_str = datetime.now(ist).strftime("%B %d, %Y at %I:%M %p IST")
-    count   = len(articles)
+    count = len(articles)
 
     # Source breakdown pills
     source_counts = Counter(a["source"] for a in articles)
@@ -113,17 +120,20 @@ def build_html_email(articles: list[dict], lookback_hours: int, exec_time: float
     # Article cards
     cards = ""
     for i, art in enumerate(articles, 1):
-        title   = (art.get("title") or "Untitled").replace("<","&lt;").replace(">","&gt;")
-        url     = art.get("url", "#")
-        source  = art.get("source", "Unknown")
-        pub     = _fmt_date(art.get("published_at", ""))
-        excerpt = (art.get("excerpt") or "").replace("<","&lt;").replace(">","&gt;")
-        badge   = _badge(source)
+        title = (
+            (art.get("title") or "Untitled").replace("<", "&lt;").replace(">", "&gt;")
+        )
+        url = art.get("url", "#")
+        source = art.get("source", "Unknown")
+        pub = _fmt_date(art.get("published_at", ""))
+        excerpt = (art.get("excerpt") or "").replace("<", "&lt;").replace(">", "&gt;")
+        badge = _badge(source)
 
         excerpt_row = (
             f'<p style="margin:10px 0 0;font-size:14px;color:#555;line-height:1.65;">'
-            f'{excerpt}</p>'
-            if excerpt else ""
+            f"{excerpt}</p>"
+            if excerpt
+            else ""
         )
 
         cards += f"""
@@ -248,7 +258,7 @@ def build_html_email(articles: list[dict], lookback_hours: int, exec_time: float
               Reddit · TOI · Filmfare · Zoom · Pinkvilla ·
               Hungama · NDTV · IMDB<br>
               <span style="color:#aaa;">
-                Execution: {exec_time:.1f}s · OpenAI: ${token_usage['cost_usd']:.6f} ({token_usage['input_tokens']} input + {token_usage['output_tokens']} output tokens)<br>
+                Execution: {exec_time:.1f}s · OpenAI: ${token_usage["cost_usd"]:.6f} ({token_usage["input_tokens"]} input + {token_usage["output_tokens"]} output tokens)<br>
                 To unsubscribe, remove your email from settings.py
               </span>
             </p>
@@ -265,21 +275,22 @@ def build_html_email(articles: list[dict], lookback_hours: int, exec_time: float
 
 # ── Sender ────────────────────────────────────────────────────
 
+
 def send_email(
-    html_body:  str,
-    subject:    str,
+    html_body: str,
+    subject: str,
     recipients: list[str],
-    smtp_host:  str,
-    smtp_port:  int,
-    smtp_user:  str,
-    smtp_pass:  str,
-    from_addr:  str,
+    smtp_host: str,
+    smtp_port: int,
+    smtp_user: str,
+    smtp_pass: str,
+    from_addr: str,
 ):
     """Send an HTML email via SMTP.
-    
+
     Constructs a multipart MIME email and sends it through the specified
     SMTP server with TLS encryption.
-    
+
     Args:
         html_body: HTML content of the email.
         subject: Email subject line.
@@ -289,14 +300,14 @@ def send_email(
         smtp_user: SMTP login username.
         smtp_pass: SMTP login password.
         from_addr: Sender email address.
-        
+
     Raises:
         Exception: If SMTP connection or send fails.
     """
-    msg            = MIMEMultipart("alternative")
+    msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"]    = from_addr
-    msg["To"]      = ", ".join(recipients)
+    msg["From"] = from_addr
+    msg["To"] = ", ".join(recipients)
     msg.attach(MIMEText("Your email client does not support HTML emails.", "plain"))
     msg.attach(MIMEText(html_body, "html"))
 

@@ -140,7 +140,7 @@ EMAIL_SUBJECT = "🎵 Pritam News Alerts — Latest Buzz [{date}]"
 
 RECIPIENT_EMAILS = [
     "mukherjeesagnik2@gmail.com",  # [0] — always receives heartbeat + alerts
-    "palashchaturvedi@gmail.com",  # [1] — only receives full digest when news found
+    # "palashchaturvedi@gmail.com",  # [1] — only receives full digest when news found
 ]
 
 # ── Dedup file ─────────────────────────────────────────────────

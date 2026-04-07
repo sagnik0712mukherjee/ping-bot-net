@@ -173,6 +173,13 @@ def run_once(dry_run: bool = False) -> None:
     new_articles, seen = filter_new(all_articles, seen)
     logger.info(f"New (not previously sent): {len(new_articles)}")
 
+    # ── IMPORTANT: save seen state NOW, before any sending ──────
+    # This guarantees the dedup record is written even if email/Telegram
+    # later throws an exception, preventing duplicate sends on the next run.
+    if not dry_run:
+        save_seen(settings.SEEN_URLS_FILE, seen)
+        logger.info("[Dedup] seen_urls.json updated.")
+
     exec_elapsed = time.time() - exec_start
     token_usage  = ai_filter.get_token_usage()
 
@@ -209,23 +216,24 @@ def run_once(dry_run: bool = False) -> None:
         logger.info("Email preview → email_preview.html")
         return
 
-    send_email(
-        html_body  = html,
-        subject    = subject,
-        recipients = settings.RECIPIENT_EMAILS,   # all recipients
-        smtp_host  = settings.SMTP_HOST,
-        smtp_port  = settings.SMTP_PORT,
-        smtp_user  = settings.SMTP_USERNAME,
-        smtp_pass  = settings.SMTP_PASSWORD,
-        from_addr  = settings.EMAIL_FROM,
-    )
+    try:
+        send_email(
+            html_body  = html,
+            subject    = subject,
+            recipients = settings.RECIPIENT_EMAILS,
+            smtp_host  = settings.SMTP_HOST,
+            smtp_port  = settings.SMTP_PORT,
+            smtp_user  = settings.SMTP_USERNAME,
+            smtp_pass  = settings.SMTP_PASSWORD,
+            from_addr  = settings.EMAIL_FROM,
+        )
+    except Exception as e:
+        logger.error(f"[Email] ❌ Digest send failed: {e} — seen_urls already saved, won't re-send next run.")
 
     # 8. Send Telegram digest
     tg_msg = build_telegram_digest(new_articles, raw_count)
     send_telegram(tg_msg)
 
-    # 9. Persist seen URLs ONLY after successful send
-    save_seen(settings.SEEN_URLS_FILE, seen)
     logger.info("Run complete.")
 
 

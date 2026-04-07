@@ -51,26 +51,27 @@ _TRIGGERS = [
 # Exclusion phrases — if present, reject the article entirely
 # Catches common false positives where "Pritam" appears in wrong context
 _EXCLUSIONS = [
-    "pritam singh",      # politician
-    "pritam fc",         # footballer
-    "chennaiyin fc",     # footballer
-    "fire",              # unrelated news
-    "arrest",            # crime news
-    "drug",              # crime news
-    "election",          # politics
-    "voter",             # politics
-    "campaign",          # politics (except movie campaigns)
-    "mining",            # environmental/politics
-    "elevator",          # architecture
-    "family pension",     # legal news
-    "fire breaks",       # accident news
-    "iran",              # geopolitical
-    "cricket",           # sports
-    "psl",               # cricket league
-    "offshore",          # oil/gas
-    "cocktail recipe",   # off-topic
-    "mojito",            # off-topic
+    "pritam singh",  # politician
+    "pritam fc",  # footballer
+    "chennaiyin fc",  # footballer
+    "fire",  # unrelated news
+    "arrest",  # crime news
+    "drug",  # crime news
+    "election",  # politics
+    "voter",  # politics
+    "campaign",  # politics (except movie campaigns)
+    "mining",  # environmental/politics
+    "elevator",  # architecture
+    "family pension",  # legal news
+    "fire breaks",  # accident news
+    "iran",  # geopolitical
+    "cricket",  # sports
+    "psl",  # cricket league
+    "offshore",  # oil/gas
+    "cocktail recipe",  # off-topic
+    "mojito",  # off-topic
 ]
+
 
 def _is_exclusion_match(text: str) -> bool:
     """Returns True if any exclusion phrase appears in text."""
@@ -80,6 +81,7 @@ def _is_exclusion_match(text: str) -> bool:
             return True
     return False
 
+
 def _prefilter(text: str, title: str = "") -> bool:
     """
     Returns True if article should be included.
@@ -88,22 +90,24 @@ def _prefilter(text: str, title: str = "") -> bool:
     """
     if not any(t in text.lower() for t in _TRIGGERS):
         return False
-    
+
     # Reject if it has exclusion markers (unless "pritam" appears without the exclusion)
     # e.g., reject "Pritam Singh elected" but allow "Pritam's new song"
     combined = (title + " " + text).lower()
-    
+
     # Special case: "pritam singh" is definitely not the composer
     if "pritam singh" in combined:
         return False
-    
+
     # General exclusions if they appear in title or first 200 chars of text
     first_part = text[:200].lower()
     if _is_exclusion_match(first_part):
         # But allow if title explicitly mentions movie/song
-        if not any(movie in title.lower() for movie in ["bhooth", "tu hi disda", "cocktail"]):
+        if not any(
+            movie in title.lower() for movie in ["bhooth", "tu hi disda", "cocktail"]
+        ):
             return False
-    
+
     return True
 
 
@@ -117,12 +121,13 @@ def _title_has_pritam(title: str) -> bool:
 #  Shared helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _cutoff_dt(lookback_hours: int) -> datetime:
     """Calculate the cutoff datetime for filtering recent articles.
-    
+
     Args:
         lookback_hours: Number of hours to look back from now.
-        
+
     Returns:
         datetime object representing the cutoff point in UTC.
     """
@@ -131,13 +136,13 @@ def _cutoff_dt(lookback_hours: int) -> datetime:
 
 def _parse_feedparser_time(entry) -> datetime | None:
     """Extract and parse publication time from a feedparser entry.
-    
+
     Attempts to parse published_parsed or updated_parsed attributes from
     the feedparser entry object.
-    
+
     Args:
         entry: A feedparser entry object.
-        
+
     Returns:
         datetime object in UTC if found, None otherwise.
     """
@@ -153,10 +158,10 @@ def _parse_feedparser_time(entry) -> datetime | None:
 
 def _dt_to_iso(dt: datetime | None) -> str:
     """Convert a datetime object to ISO 8601 string format.
-    
+
     Args:
         dt: A datetime object, or None.
-        
+
     Returns:
         ISO format string if dt is provided, empty string if None.
     """
@@ -165,16 +170,16 @@ def _dt_to_iso(dt: datetime | None) -> str:
 
 def _is_fresh(dt: datetime | None, lookback_hours: int) -> bool:
     """Check if a datetime is within the lookback window.
-    
+
     Args:
         dt: A datetime object to check, or None.
         lookback_hours: Number of hours to consider as recent.
-        
+
     Returns:
         True if dt is within the lookback window or if dt is None (unknown dates included).
     """
     if dt is None:
-        return True   # unknown date → include (better to over-report)
+        return True  # unknown date → include (better to over-report)
     return dt >= _cutoff_dt(lookback_hours)
 
 
@@ -187,10 +192,10 @@ def _clean(raw: str) -> str:
 
 def _strip_html(raw: str) -> str:
     """Remove HTML tags from a string.
-    
+
     Args:
         raw: String potentially containing HTML markup.
-        
+
     Returns:
         String with all HTML tags removed.
     """
@@ -199,52 +204,50 @@ def _strip_html(raw: str) -> str:
 
 def _resolve_google_alerts_url(url: str) -> str:
     """Extract the real URL from a Google Alerts RSS redirect wrapper.
-    
+
     Google Alerts wraps URLs in a redirect wrapper. This function extracts
     the actual target URL.
-    
+
     Args:
         url: A URL possibly wrapped in Google Alerts redirect.
-        
+
     Returns:
         The original URL if extraction succeeds, otherwise the input URL.
     """
     if "google.com/url" in url:
-        m = re.search(r'[?&]url=([^&]+)', url)
+        m = re.search(r"[?&]url=([^&]+)", url)
         if m:
             return unquote(m.group(1))
     return url
 
 
-def _article(source: str, title: str, url: str,
-             excerpt: str, published_at: str) -> dict:
+def _article(
+    source: str, title: str, url: str, excerpt: str, published_at: str
+) -> dict:
     """Create a standardized article dictionary.
-    
+
     Constructs an article record with resolved URLs and cleaned HTML.
-    
+
     Args:
         source: Name of the news source.
         title: Article headline.
         url: Article URL.
         excerpt: Article summary or excerpt.
         published_at: ISO format publication datetime string.
-        
+
     Returns:
         Dictionary with keys: source, title, url, excerpt, published_at.
     """
     return {
-        "source":       source,
-        "title":        _strip_html(title),
-        "url":          _resolve_google_alerts_url(url.strip()),
-        "excerpt":      excerpt,
+        "source": source,
+        "title": _strip_html(title),
+        "url": _resolve_google_alerts_url(url.strip()),
+        "excerpt": excerpt,
         "published_at": published_at,
     }
 
 
-_GN_URL = (
-    "https://news.google.com/rss/search"
-    "?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
-)
+_GN_URL = "https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
 
 _BROWSER_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -253,9 +256,12 @@ _BROWSER_UA = (
 )
 
 
-def _parse_rss(feed_url: str, source_name: str,
-               lookback_hours: int,
-               strict_pritam_in_title: bool = False) -> list[dict]:
+def _parse_rss(
+    feed_url: str,
+    source_name: str,
+    lookback_hours: int,
+    strict_pritam_in_title: bool = False,
+) -> list[dict]:
     """
     Fetch RSS feed, keep entries that are fresh and pass pre-filter.
     strict_pritam_in_title=True: 'pritam' must be in title (Reddit/YT channels).
@@ -263,8 +269,7 @@ def _parse_rss(feed_url: str, source_name: str,
     """
     try:
         feed = feedparser.parse(
-            feed_url,
-            request_headers={"User-Agent": "pritam-monitor/1.0"}
+            feed_url, request_headers={"User-Agent": "pritam-monitor/1.0"}
         )
     except Exception as e:
         logger.warning(f"[{source_name}] RSS error: {e}")
@@ -272,8 +277,8 @@ def _parse_rss(feed_url: str, source_name: str,
 
     results = []
     for entry in feed.entries:
-        dt      = _parse_feedparser_time(entry)
-        title   = entry.get("title", "").strip()
+        dt = _parse_feedparser_time(entry)
+        title = entry.get("title", "").strip()
         summary = entry.get("summary", "")
         if not _is_fresh(dt, lookback_hours):
             continue
@@ -283,19 +288,22 @@ def _parse_rss(feed_url: str, source_name: str,
         else:
             if not _prefilter(title + " " + summary, title):
                 continue
-        results.append(_article(
-            source       = source_name,
-            title        = title,
-            url          = entry.get("link", ""),
-            excerpt      = _clean(summary),
-            published_at = _dt_to_iso(dt),
-        ))
+        results.append(
+            _article(
+                source=source_name,
+                title=title,
+                url=entry.get("link", ""),
+                excerpt=_clean(summary),
+                published_at=_dt_to_iso(dt),
+            )
+        )
     return results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  TIER 1  —  Keyword-driven broad sources
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def fetch_newsapi(keywords: list[str], lookback_hours: int, api_key: str) -> list[dict]:
     """NewsAPI /v2/everything. Free tier: 100 req/day."""
@@ -304,19 +312,20 @@ def fetch_newsapi(keywords: list[str], lookback_hours: int, api_key: str) -> lis
         return []
 
     results = []
-    cutoff  = _cutoff_dt(lookback_hours)
+    cutoff = _cutoff_dt(lookback_hours)
 
     for kw in keywords:
         params = {
-            "q":        kw,
-            "sortBy":   "publishedAt",
+            "q": kw,
+            "sortBy": "publishedAt",
             "language": "en",
-            "apiKey":   api_key,
+            "apiKey": api_key,
             "pageSize": 20,
         }
         try:
-            resp = requests.get("https://newsapi.org/v2/everything",
-                                params=params, timeout=10)
+            resp = requests.get(
+                "https://newsapi.org/v2/everything", params=params, timeout=10
+            )
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
@@ -335,13 +344,15 @@ def fetch_newsapi(keywords: list[str], lookback_hours: int, api_key: str) -> lis
             title = art.get("title") or ""
             if not title or title == "[Removed]":
                 continue
-            results.append(_article(
-                source       = "NewsAPI",
-                title        = title,
-                url          = art.get("url", ""),
-                excerpt      = _clean(art.get("description") or art.get("content") or ""),
-                published_at = _dt_to_iso(pub_dt),
-            ))
+            results.append(
+                _article(
+                    source="NewsAPI",
+                    title=title,
+                    url=art.get("url", ""),
+                    excerpt=_clean(art.get("description") or art.get("content") or ""),
+                    published_at=_dt_to_iso(pub_dt),
+                )
+            )
 
     logger.info(f"[NewsAPI] {len(results)} articles fetched.")
     return results
@@ -355,13 +366,14 @@ def fetch_gnews(keywords: list[str], lookback_hours: int) -> list[dict]:
         return []
 
     results = []
-    cutoff  = _cutoff_dt(lookback_hours)
+    cutoff = _cutoff_dt(lookback_hours)
 
     for kw in keywords:
         params = {"q": kw, "lang": "en", "max": 10, "apikey": key}
         try:
-            resp = requests.get("https://gnews.io/api/v4/search",
-                                params=params, timeout=10)
+            resp = requests.get(
+                "https://gnews.io/api/v4/search", params=params, timeout=10
+            )
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
@@ -380,13 +392,15 @@ def fetch_gnews(keywords: list[str], lookback_hours: int) -> list[dict]:
             title = art.get("title") or ""
             if not title:
                 continue
-            results.append(_article(
-                source       = "GNews",
-                title        = title,
-                url          = art.get("url", ""),
-                excerpt      = _clean(art.get("description") or ""),
-                published_at = _dt_to_iso(pub_dt),
-            ))
+            results.append(
+                _article(
+                    source="GNews",
+                    title=title,
+                    url=art.get("url", ""),
+                    excerpt=_clean(art.get("description") or ""),
+                    published_at=_dt_to_iso(pub_dt),
+                )
+            )
 
     logger.info(f"[GNews] {len(results)} articles fetched.")
     return results
@@ -411,55 +425,62 @@ def fetch_google_alerts(feed_urls: list[str], lookback_hours: int) -> list[dict]
             logger.warning(f"[Google Alerts] Error: {e}")
             continue
         for entry in feed.entries:
-            dt      = _parse_feedparser_time(entry)
-            title   = _strip_html(entry.get("title", ""))
+            dt = _parse_feedparser_time(entry)
+            title = _strip_html(entry.get("title", ""))
             summary = _clean(entry.get("summary", ""))
             if not _is_fresh(dt, lookback_hours):
                 continue
             # Only minimal pre-filter: skip if completely empty
             if not title and not summary:
                 continue
-            results.append(_article(
-                source       = "Google Alerts",
-                title        = title,
-                url          = entry.get("link", ""),
-                excerpt      = summary,
-                published_at = _dt_to_iso(dt),
-            ))
+            results.append(
+                _article(
+                    source="Google Alerts",
+                    title=title,
+                    url=entry.get("link", ""),
+                    excerpt=summary,
+                    published_at=_dt_to_iso(dt),
+                )
+            )
 
     logger.info(f"[Google Alerts] {len(results)} articles fetched.")
     return results
 
 
-def fetch_reddit(subreddits: list[str], keywords: list[str],
-                 lookback_hours: int) -> list[dict]:
+def fetch_reddit(
+    subreddits: list[str], keywords: list[str], lookback_hours: int
+) -> list[dict]:
     """Reddit subreddit RSS search. 'pritam' must be in post title."""
     results = []
     headers = {"User-Agent": "pritam-monitor/1.0"}
 
     for sub in subreddits:
         for kw in keywords:
-            url = (f"https://www.reddit.com/r/{sub}/search.rss"
-                   f"?q={quote_plus(kw)}&sort=new&restrict_sr=on")
+            url = (
+                f"https://www.reddit.com/r/{sub}/search.rss"
+                f"?q={quote_plus(kw)}&sort=new&restrict_sr=on"
+            )
             try:
                 feed = feedparser.parse(url, request_headers=headers)
             except Exception as e:
                 logger.warning(f"[Reddit] r/{sub} '{kw}': {e}")
                 continue
             for entry in feed.entries:
-                dt    = _parse_feedparser_time(entry)
+                dt = _parse_feedparser_time(entry)
                 title = entry.get("title", "").strip()
                 if not _is_fresh(dt, lookback_hours):
                     continue
                 if not _title_has_pritam(title):
                     continue
-                results.append(_article(
-                    source       = f"Reddit r/{sub}",
-                    title        = title,
-                    url          = entry.get("link", ""),
-                    excerpt      = _clean(entry.get("summary", "")),
-                    published_at = _dt_to_iso(dt),
-                ))
+                results.append(
+                    _article(
+                        source=f"Reddit r/{sub}",
+                        title=title,
+                        url=entry.get("link", ""),
+                        excerpt=_clean(entry.get("summary", "")),
+                        published_at=_dt_to_iso(dt),
+                    )
+                )
 
     logger.info(f"[Reddit] {len(results)} posts fetched.")
     return results
@@ -471,14 +492,15 @@ _PIPED_INSTANCES = [
     "https://api.piped.projectsegfau.lt",
 ]
 
+
 def fetch_youtube_search(keywords: list[str], lookback_hours: int) -> list[dict]:
     """YouTube search via Piped API for videos & shorts, falls back to Google News.
-    
+
     Searches YouTube for videos and shorts (duration-agnostic) matching keywords.
     Includes both full-length videos and short-form content (Shorts, clips, etc).
     Falls back to Google News scoped to site:youtube.com if Piped API unavailable.
     """
-    cutoff  = _cutoff_dt(lookback_hours)
+    cutoff = _cutoff_dt(lookback_hours)
     results = []
 
     for kw in keywords:
@@ -488,15 +510,18 @@ def fetch_youtube_search(keywords: list[str], lookback_hours: int) -> list[dict]
             try:
                 resp = requests.get(
                     f"{instance}/search?q={quote_plus(kw)}&filter=videos",
-                    timeout=5  # Reduced from 15 to fail fast
+                    timeout=5,  # Reduced from 15 to fail fast
                 )
                 resp.raise_for_status()
                 for v in resp.json().get("items", []):
                     if v.get("type") != "stream":
                         continue
                     uploaded_ms = v.get("uploaded")
-                    pub_dt = (datetime.fromtimestamp(uploaded_ms / 1000, tz=timezone.utc)
-                              if uploaded_ms else None)
+                    pub_dt = (
+                        datetime.fromtimestamp(uploaded_ms / 1000, tz=timezone.utc)
+                        if uploaded_ms
+                        else None
+                    )
                     if pub_dt and pub_dt < cutoff:
                         continue
                     title = v.get("title", "").strip()
@@ -506,42 +531,50 @@ def fetch_youtube_search(keywords: list[str], lookback_hours: int) -> list[dict]
                     duration = v.get("duration", 0)
                     is_short = duration < 60 if duration else False
                     source_label = "YouTube Shorts" if is_short else "YouTube"
-                    results.append(_article(
-                        source       = source_label,
-                        title        = title,
-                        url          = f"https://www.youtube.com/watch?v={video_id}",
-                        excerpt      = _clean(v.get("shortDescription", "")),
-                        published_at = _dt_to_iso(pub_dt),
-                    ))
+                    results.append(
+                        _article(
+                            source=source_label,
+                            title=title,
+                            url=f"https://www.youtube.com/watch?v={video_id}",
+                            excerpt=_clean(v.get("shortDescription", "")),
+                            published_at=_dt_to_iso(pub_dt),
+                        )
+                    )
                 fetched = True
                 break
             except Exception as e:
-                logger.debug(f"[YouTube/Piped] {instance} failed for '{kw}': {type(e).__name__}")
+                logger.debug(
+                    f"[YouTube/Piped] {instance} failed for '{kw}': {type(e).__name__}"
+                )
                 continue
 
         if not fetched:
-            logger.debug(f"[YouTube/Piped] All instances failed for '{kw}' — using Google News fallback")
+            logger.debug(
+                f"[YouTube/Piped] All instances failed for '{kw}' — using Google News fallback"
+            )
             # Fallback: Google News scoped to youtube.com
             try:
                 feed = feedparser.parse(
                     _GN_URL.format(query=quote_plus(f"{kw} site:youtube.com")),
-                    request_headers={"User-Agent": _BROWSER_UA}
+                    request_headers={"User-Agent": _BROWSER_UA},
                 )
                 for entry in feed.entries:
-                    dt    = _parse_feedparser_time(entry)
+                    dt = _parse_feedparser_time(entry)
                     title = entry.get("title", "").strip()
                     if not _is_fresh(dt, lookback_hours):
                         continue
                     summary = entry.get("summary", "")
                     if not _prefilter(title + " " + summary, title):
                         continue
-                    results.append(_article(
-                        source       = "YouTube",
-                        title        = title,
-                        url          = entry.get("link", ""),
-                        excerpt      = _clean(summary),
-                        published_at = _dt_to_iso(dt),
-                    ))
+                    results.append(
+                        _article(
+                            source="YouTube",
+                            title=title,
+                            url=entry.get("link", ""),
+                            excerpt=_clean(summary),
+                            published_at=_dt_to_iso(dt),
+                        )
+                    )
             except Exception as e:
                 logger.warning(f"[YouTube] Fallback also failed for '{kw}': {e}")
 
@@ -561,19 +594,21 @@ def fetch_youtube_channels(channel_ids: list[str], lookback_hours: int) -> list[
             logger.warning(f"[YouTube Channels] {channel_id}: {e}")
             continue
         for entry in feed.entries:
-            dt    = _parse_feedparser_time(entry)
+            dt = _parse_feedparser_time(entry)
             title = entry.get("title", "").strip()
             if not _is_fresh(dt, lookback_hours):
                 continue
             if not _title_has_pritam(title):
                 continue
-            results.append(_article(
-                source       = "YouTube (channel)",
-                title        = title,
-                url          = entry.get("link", ""),
-                excerpt      = _clean(entry.get("summary", "")),
-                published_at = _dt_to_iso(dt),
-            ))
+            results.append(
+                _article(
+                    source="YouTube (channel)",
+                    title=title,
+                    url=entry.get("link", ""),
+                    excerpt=_clean(entry.get("summary", "")),
+                    published_at=_dt_to_iso(dt),
+                )
+            )
 
     logger.info(f"[YouTube Channels] {len(results)} videos fetched.")
     return results
@@ -583,20 +618,21 @@ def fetch_youtube_channels(channel_ids: list[str], lookback_hours: int) -> list[
 #  TIER 2  —  Direct named-outlet scrapers
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _fetch_site_scoped(site_domain: str, source_name: str) -> list[dict]:
     """
     Google News search scoped to a domain, one query per keyword.
     Deduplicates results internally. Uses improved pre-filter to reduce trash.
     """
-    results   = []
+    results = []
     seen_urls: set[str] = set()
 
     for kw in settings.KEYWORDS:
         query = f"{kw} site:{site_domain}"
-        feed  = feedparser.parse(_GN_URL.format(query=quote_plus(query)))
+        feed = feedparser.parse(_GN_URL.format(query=quote_plus(query)))
         for entry in feed.entries:
-            dt    = _parse_feedparser_time(entry)
-            url   = entry.get("link", "")
+            dt = _parse_feedparser_time(entry)
+            url = entry.get("link", "")
             title = entry.get("title", "").strip()
             summary = entry.get("summary", "")
             if not _is_fresh(dt, settings.LOOKBACK_M_HOURS):
@@ -607,19 +643,21 @@ def _fetch_site_scoped(site_domain: str, source_name: str) -> list[dict]:
             if not _prefilter(title + " " + summary, title):
                 continue
             seen_urls.add(url)
-            results.append(_article(
-                source       = source_name,
-                title        = title,
-                url          = url,
-                excerpt      = _clean(summary),
-                published_at = _dt_to_iso(dt),
-            ))
+            results.append(
+                _article(
+                    source=source_name,
+                    title=title,
+                    url=url,
+                    excerpt=_clean(summary),
+                    published_at=_dt_to_iso(dt),
+                )
+            )
     return results
 
 
 def fetch_toi() -> list[dict]:
     """Fetch articles from Times of India RSS feeds and Google News.
-    
+
     Returns:
         List of article dictionaries from Times of India and Bombay Times.
     """
@@ -629,7 +667,9 @@ def fetch_toi() -> list[dict]:
         "https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms",
         "https://timesofindia.indiatimes.com/rssfeeds/1081479906.cms",
     ]:
-        results.extend(_parse_rss(feed_url, "Times of India", settings.LOOKBACK_M_HOURS))
+        results.extend(
+            _parse_rss(feed_url, "Times of India", settings.LOOKBACK_M_HOURS)
+        )
     # Also Google News site-scoped
     results.extend(_fetch_site_scoped("timesofindia.indiatimes.com", "Times of India"))
     logger.info(f"[TOI] {len(results)} articles.")
@@ -638,65 +678,79 @@ def fetch_toi() -> list[dict]:
 
 def fetch_filmfare() -> list[dict]:
     """Fetch articles from Filmfare via Google News and RSS feed.
-    
+
     Returns:
         List of article dictionaries from Filmfare.
     """
     results = _fetch_site_scoped("filmfare.com", "Filmfare")
-    results.extend(_parse_rss(
-        "https://www.filmfare.com/feeds/feeds.xml",
-        "Filmfare", settings.LOOKBACK_M_HOURS
-    ))
+    results.extend(
+        _parse_rss(
+            "https://www.filmfare.com/feeds/feeds.xml",
+            "Filmfare",
+            settings.LOOKBACK_M_HOURS,
+        )
+    )
     logger.info(f"[Filmfare] {len(results)} articles.")
     return results
 
 
 def fetch_zoom() -> list[dict]:
     """Fetch articles from Zoom TV Entertainment.
-    
+
     Returns:
         List of article dictionaries from Zoom TV Entertainment.
     """
     results = _fetch_site_scoped("zoomtventertainment.com", "Zoom TV Entertainment")
-    results.extend(_parse_rss(
-        "https://www.zoomtventertainment.com/feeds/bollywood.xml",
-        "Zoom TV Entertainment", settings.LOOKBACK_M_HOURS
-    ))
+    results.extend(
+        _parse_rss(
+            "https://www.zoomtventertainment.com/feeds/bollywood.xml",
+            "Zoom TV Entertainment",
+            settings.LOOKBACK_M_HOURS,
+        )
+    )
     logger.info(f"[Zoom TV] {len(results)} articles.")
     return results
 
 
 def fetch_pinkvilla() -> list[dict]:
     """Fetch articles from Pinkvilla RSS feed.
-    
+
     Returns:
         List of article dictionaries from Pinkvilla.
     """
-    r = _parse_rss("https://www.pinkvilla.com/feed", "Pinkvilla", settings.LOOKBACK_M_HOURS)
+    r = _parse_rss(
+        "https://www.pinkvilla.com/feed", "Pinkvilla", settings.LOOKBACK_M_HOURS
+    )
     logger.info(f"[Pinkvilla] {len(r)} articles.")
     return r
 
 
 def fetch_bollywood_hungama() -> list[dict]:
     """Fetch articles from Bollywood Hungama RSS feed.
-    
+
     Returns:
         List of article dictionaries from Bollywood Hungama.
     """
-    r = _parse_rss("https://www.bollywoodhungama.com/feed/",
-                   "Bollywood Hungama", settings.LOOKBACK_M_HOURS)
+    r = _parse_rss(
+        "https://www.bollywoodhungama.com/feed/",
+        "Bollywood Hungama",
+        settings.LOOKBACK_M_HOURS,
+    )
     logger.info(f"[Bollywood Hungama] {len(r)} articles.")
     return r
 
 
 def fetch_ndtv() -> list[dict]:
     """Fetch articles from NDTV Entertainment RSS feed.
-    
+
     Returns:
         List of article dictionaries from NDTV Entertainment.
     """
-    r = _parse_rss("https://feeds.feedburner.com/NdtvEntertainment",
-                   "NDTV Entertainment", settings.LOOKBACK_M_HOURS)
+    r = _parse_rss(
+        "https://feeds.feedburner.com/NdtvEntertainment",
+        "NDTV Entertainment",
+        settings.LOOKBACK_M_HOURS,
+    )
     logger.info(f"[NDTV] {len(r)} articles.")
     return r
 
@@ -705,8 +759,9 @@ def fetch_imdb() -> list[dict]:
     """Scrapes Pritam's IMDB news page. Falls back to Google News site-scoped."""
     headers = {"User-Agent": _BROWSER_UA, "Accept-Language": "en-US,en;q=0.9"}
     try:
-        resp = requests.get("https://www.imdb.com/name/nm0679665/news",
-                            headers=headers, timeout=10)
+        resp = requests.get(
+            "https://www.imdb.com/name/nm0679665/news", headers=headers, timeout=10
+        )
         resp.raise_for_status()
         html = resp.text
     except Exception as e:
@@ -714,20 +769,23 @@ def fetch_imdb() -> list[dict]:
         return _imdb_fallback()
 
     results = []
-    seen    = set()
+    seen = set()
     for path, raw_title in re.findall(
-        r'href="(/news/ni\d+[^"]*)"[^>]*>\s*<[^>]+>\s*(.*?)\s*</[^>]+>',
-        html, re.DOTALL
+        r'href="(/news/ni\d+[^"]*)"[^>]*>\s*<[^>]+>\s*(.*?)\s*</[^>]+>', html, re.DOTALL
     ):
         title = _clean(raw_title)
         if not title or path in seen:
             continue
         seen.add(path)
-        results.append(_article(
-            source="IMDB", title=title,
-            url="https://www.imdb.com" + path,
-            excerpt="", published_at="",
-        ))
+        results.append(
+            _article(
+                source="IMDB",
+                title=title,
+                url="https://www.imdb.com" + path,
+                excerpt="",
+                published_at="",
+            )
+        )
 
     logger.info(f"[IMDB] {len(results)} items (page scrape).")
     return results if results else _imdb_fallback()
@@ -735,7 +793,7 @@ def fetch_imdb() -> list[dict]:
 
 def _imdb_fallback() -> list[dict]:
     """Fetch IMDB articles using Google News fallback when direct scrape fails.
-    
+
     Returns:
         List of article dictionaries from IMDB via Google News.
     """
@@ -748,91 +806,155 @@ def _imdb_fallback() -> list[dict]:
             dt = _parse_feedparser_time(entry)
             if not _is_fresh(dt, settings.LOOKBACK_M_HOURS):
                 continue
-            results.append(_article(
-                source="IMDB",
-                title=entry.get("title", "").strip(),
-                url=entry.get("link", ""),
-                excerpt=_clean(entry.get("summary", "")),
-                published_at=_dt_to_iso(dt),
-            ))
+            results.append(
+                _article(
+                    source="IMDB",
+                    title=entry.get("title", "").strip(),
+                    url=entry.get("link", ""),
+                    excerpt=_clean(entry.get("summary", "")),
+                    published_at=_dt_to_iso(dt),
+                )
+            )
     logger.info(f"[IMDB] {len(results)} items (fallback).")
     return results
 
 
 _INSTAGRAM_MIRRORS = [
-    ("imginn",  "https://imginn.com/pritamofficial/"),
-    ("imgsed",  "https://imgsed.com/pritamofficial/"),
+    ("imginn", "https://imginn.com/pritamofficial/"),
+    ("imgsed", "https://imgsed.com/pritamofficial/"),
     ("inflact", "https://inflact.com/profiles/instagram/pritamofficial/"),
 ]
 
+
 def fetch_instagram() -> list[dict]:
-    """Fetch posts from Pritam's Instagram profile via mirror sites.
-    
-    Attempts to scrape Instagram using public mirror sites (imginn, imgsed, inflact).
-    Falls back to the next mirror if one fails.
-    
-    Returns:
-        List of article dictionaries containing Instagram posts.
-    """
-    cutoff  = _cutoff_dt(settings.LOOKBACK_M_HOURS)
-    headers = {"User-Agent": _BROWSER_UA}
+    """Fetch Instagram posts from official account and hashtags using Instaloader,
+    with a Google News fallback for site-wide mentions."""
+    results = []
+    cutoff = _cutoff_dt(settings.LOOKBACK_M_HOURS)
 
-    for mirror_name, mirror_url in _INSTAGRAM_MIRRORS:
-        try:
-            resp = requests.get(mirror_url, headers=headers, timeout=10)
-            resp.raise_for_status()
-            html = resp.text
-        except Exception as e:
-            logger.warning(f"[Instagram/{mirror_name}] {e}")
-            continue
+    # Strategy 1: Instaloader for @ipritamofficial and specific hashtags
+    try:
+        import instaloader
 
-        results    = []
-        seen_codes = set()
-        post_links = re.findall(
-            r'href="(https?://(?:www\.)?(?:instagram\.com|imginn\.com|imgsed\.com)'
-            r'/(?:p|pritamofficial/p)/([A-Za-z0-9_-]+)/?)"', html
+        # Initialize without login, minimal data fetching to reduce block risk
+        L = instaloader.Instaloader(
+            quiet=True,
+            download_pictures=False,
+            download_video_thumbnails=False,
+            download_videos=False,
+            download_geotags=False,
+            download_comments=False,
+            max_connection_attempts=1,
         )
-        time_tags = re.findall(r'<time[^>]+datetime="([^"]+)"', html)
 
-        for full_url, shortcode in post_links:
-            if shortcode in seen_codes:
-                continue
-            seen_codes.add(shortcode)
-            idx     = html.find(shortcode)
-            snippet = html[max(0, idx-200):idx+500] if idx != -1 else ""
-            caption = _clean(re.sub(r"<[^>]+>", " ", snippet))[:200]
-            pub_dt  = None
-            if time_tags:
-                try:
-                    pub_dt = datetime.fromisoformat(time_tags[0].replace("Z", "+00:00"))
-                    if pub_dt.tzinfo is None:
-                        pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+        # 1A: Official Profile
+        try:
+            profile = instaloader.Profile.from_username(L.context, "pritamofficial")
+            for post in profile.get_posts():
+                pub_dt = post.date_utc.replace(tzinfo=timezone.utc)
+                if pub_dt < cutoff:
+                    break  # Posts are ordered by date
+
+                caption = post.caption or ""
+                results.append(
+                    _article(
+                        source="Instagram (@ipritamofficial)",
+                        title=caption[:100] or "New post by Pritam",
+                        url=f"https://www.instagram.com/p/{post.shortcode}/",
+                        excerpt=caption,
+                        published_at=_dt_to_iso(pub_dt),
+                    )
+                )
+        except Exception as e:
+            logger.warning(f"[Instagram/Instaloader] Profile fetch failed: {e}")
+
+        # 1B: Hashtags for Mentions / Reels
+        # Limit to top 2 to avoid aggressive rate limits
+        for tag in ["pritamchakraborty", "pritammusic"]:
+            try:
+                count = 0
+                for post in instaloader.Hashtag.from_name(L.context, tag).get_posts():
+                    pub_dt = post.date_utc.replace(tzinfo=timezone.utc)
                     if pub_dt < cutoff:
+                        count += 1
+                        # Hashtags can return top posts first, so we allow some
+                        # older posts before giving up on finding new ones
+                        if count > 20:
+                            break
                         continue
-                except Exception:
-                    pass
-            results.append(_article(
-                source       = "Instagram (@pritamofficial)",
-                title        = caption[:100] or "New post by Pritam",
-                url          = f"https://www.instagram.com/p/{shortcode}/",
-                excerpt      = caption,
-                published_at = _dt_to_iso(pub_dt),
-            ))
 
-        if results:
-            logger.info(f"[Instagram/{mirror_name}] {len(results)} posts.")
-            return results
-        logger.warning(f"[Instagram/{mirror_name}] No posts found.")
+                    caption = post.caption or ""
+                    # Minimal prefilter so we don't pick up spam tags
+                    if not _prefilter(caption, ""):
+                        continue
 
-    logger.warning("[Instagram] All mirrors failed.")
-    return []
+                    kind = "Reel" if post.is_video else "Post"
+                    results.append(
+                        _article(
+                            source=f"Instagram #{tag}",
+                            title=caption[:100] or f"New Mention {kind}",
+                            url=f"https://www.instagram.com/p/{post.shortcode}/",
+                            excerpt=caption,
+                            published_at=_dt_to_iso(pub_dt),
+                        )
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"[Instagram/Instaloader] Hashtag #{tag} fetch failed: {e}"
+                )
 
+    except ImportError:
+        logger.warning(
+            "[Instagram] instaloader not installed. Run: pip install instaloader"
+        )
+    except Exception as e:
+        logger.warning(f"[Instagram] instaloader execution failed: {e}")
 
+    # Strategy 2: Google News site:instagram.com fallback (covers web-indexed mentions)
+    try:
+        seen_urls = {r["url"] for r in results}
+        for kw in settings.KEYWORDS[:4]:  # Top 4 primary keywords
+            query = f"{kw} site:instagram.com"
+            feed = feedparser.parse(_GN_URL.format(query=quote_plus(query)))
+            for entry in feed.entries:
+                dt = _parse_feedparser_time(entry)
+                if not _is_fresh(dt, settings.LOOKBACK_M_HOURS):
+                    continue
+                url = _resolve_google_alerts_url(entry.get("link", ""))
+                # Clean Google News IG url pointing to login/redirects
+                url = url.split("?")[0]
+                if url in seen_urls:
+                    continue
+                title = entry.get("title", "").strip()
+                summary = entry.get("summary", "")
+                if not _prefilter(title + " " + summary, title):
+                    continue
+
+                seen_urls.add(url)
+                results.append(
+                    _article(
+                        source="Instagram (Web Mentions)",
+                        title=title,
+                        url=url,
+                        excerpt=_clean(summary),
+                        published_at=_dt_to_iso(dt),
+                    )
+                )
+    except Exception as e:
+        logger.warning(f"[Instagram/GN-Fallback] Failed: {e}")
+
+    if results:
+        logger.info(f"[Instagram] {len(results)} total items fetched.")
+    else:
+        logger.warning("[Instagram] All strategies failed or no new posts.")
+
+    return results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Master fetch — called by main.py
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def fetch_all() -> list[dict]:
     """
@@ -843,16 +965,32 @@ def fetch_all() -> list[dict]:
     raw: list[dict] = []
 
     if settings.ENABLE_NEWSAPI:
-        raw.extend(fetch_newsapi(settings.KEYWORDS, settings.LOOKBACK_M_HOURS, settings.NEWSAPI_KEY))
+        raw.extend(
+            fetch_newsapi(
+                settings.KEYWORDS, settings.LOOKBACK_M_HOURS, settings.NEWSAPI_KEY
+            )
+        )
     if settings.ENABLE_GNEWS:
         raw.extend(fetch_gnews(settings.KEYWORDS, settings.LOOKBACK_M_HOURS))
     if settings.ENABLE_GOOGLE_ALERTS_RSS:
-        raw.extend(fetch_google_alerts(settings.GOOGLE_ALERTS_RSS_URLS, settings.LOOKBACK_M_HOURS))
+        raw.extend(
+            fetch_google_alerts(
+                settings.GOOGLE_ALERTS_RSS_URLS, settings.LOOKBACK_M_HOURS
+            )
+        )
     if settings.ENABLE_REDDIT:
-        raw.extend(fetch_reddit(settings.REDDIT_SUBREDDITS, settings.KEYWORDS, settings.LOOKBACK_M_HOURS))
+        raw.extend(
+            fetch_reddit(
+                settings.REDDIT_SUBREDDITS, settings.KEYWORDS, settings.LOOKBACK_M_HOURS
+            )
+        )
     if settings.ENABLE_YOUTUBE:
         raw.extend(fetch_youtube_search(settings.KEYWORDS, settings.LOOKBACK_M_HOURS))
-        raw.extend(fetch_youtube_channels(settings.YOUTUBE_CHANNEL_IDS, settings.LOOKBACK_M_HOURS))
+        raw.extend(
+            fetch_youtube_channels(
+                settings.YOUTUBE_CHANNEL_IDS, settings.LOOKBACK_M_HOURS
+            )
+        )
     if settings.ENABLE_TOI:
         raw.extend(fetch_toi())
     if settings.ENABLE_FILMFARE:
@@ -871,7 +1009,7 @@ def fetch_all() -> list[dict]:
         raw.extend(fetch_instagram())
 
     # Deduplicate by normalised URL (consistent with dedup.py / seen_urls.json)
-    seen:    set[str]   = set()
+    seen: set[str] = set()
     deduped: list[dict] = []
     for item in raw:
         url = item.get("url", "").strip()
