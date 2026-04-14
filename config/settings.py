@@ -26,6 +26,8 @@ KEYWORDS = [
     "Pritam Arijit",
     "Pritam Cocktail 2",
     "Pritam Aashiqui",
+    "Pritam O Sundari",
+    "Pritam Retire",
     "Pritam copy",
     "Pritam copied",
     "Pritam Original",
