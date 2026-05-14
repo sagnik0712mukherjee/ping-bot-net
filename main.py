@@ -123,16 +123,16 @@ def send_heartbeat(run_number: int, articles_found: int,
 </body></html>"""
 
     try:
-        send_email(
-            html_body  = html,
-            subject    = subject,
-            recipients = [your_email],
-            smtp_host  = settings.SMTP_HOST,
-            smtp_port  = settings.SMTP_PORT,
-            smtp_user  = settings.SMTP_USERNAME,
-            smtp_pass  = settings.SMTP_PASSWORD,
-            from_addr  = settings.EMAIL_FROM,
-        )
+        # send_email(
+        #     html_body  = html,
+        #     subject    = subject,
+        #     recipients = [your_email],
+        #     smtp_host  = settings.SMTP_HOST,
+        #     smtp_port  = settings.SMTP_PORT,
+        #     smtp_user  = settings.SMTP_USERNAME,
+        #     smtp_pass  = settings.SMTP_PASSWORD,
+        #     from_addr  = settings.EMAIL_FROM,
+        # )
         logger.info(f"[Heartbeat] ✅ Sent to {your_email}")
     except Exception as e:
         logger.warning(f"[Heartbeat] ⚠️ Failed: {e}")
