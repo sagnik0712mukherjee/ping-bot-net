@@ -178,7 +178,7 @@ def run_once(dry_run: bool = False) -> None:
     # later throws an exception, preventing duplicate sends on the next run.
     if not dry_run:
         save_seen(settings.SEEN_URLS_FILE, seen)
-        logger.info("[Dedup] seen_urls.json updated.")
+        logger.info(f"[Dedup] seen_urls.json updated (tracking {len(seen['urls'])} URLs, {len(seen['titles'])} titles).")
 
     exec_elapsed = time.time() - exec_start
     token_usage  = ai_filter.get_token_usage()

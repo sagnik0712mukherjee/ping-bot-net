@@ -67,24 +67,23 @@ def build_ai_filter_prompt() -> str:
     films_list = ", ".join(film_keywords) if film_keywords else "tracked projects"
     return f"""You are a relevance filter for a news monitoring bot that tracks Pritam Chakraborty — a famous Bollywood music composer known for Jab We Met, Barfi!, Ae Dil Hai Mushkil, Cocktail, Bhooth Bangla, etc.
 
-You will receive a numbered list of articles (title + excerpt). For each one, reply with ONLY "YES" or "NO" on a separate line — one answer per article, in the same order.
+    You will receive a numbered list of articles (title + excerpt). For each one, reply with ONLY "YES" or "NO" on a separate line — one answer per article, in the same order.
 
-Tracking keywords: {keywords_display}
-Key projects: {films_list}
+    Tracking keywords: {keywords_display}
+    Key projects: {films_list}
 
-Reply YES if:
-- Directly mentions Pritam Chakraborty (the composer) by name
-- Is about a specific Pritam song, composition, album, or score
-- Discusses a tracked project AND mentions music/songs/soundtrack/composer role
-- Is an interview, announcement, or news specifically about Pritam's work
+    Reply YES if:
+    - Directly mentions Pritam Chakraborty (the composer) by name
+    - Is about a specific Pritam song, composition, album, or score
+    - Discusses a tracked project AND mentions music/songs/soundtrack/composer role
+    - Is an interview, announcement, or news specifically about Pritam's work
 
-Reply NO if:
-- About a different person named Pritam (Pritam Singh politician, Pritam the footballer/Chennaiyin FC)
-- Generic Bollywood gossip where Pritam is not the subject
-- Spam, recipes, shopping, sports, politics, crime news
-- Pritam mentioned only in passing in an article primarily about someone else
+    Reply NO if:
+    - About a different person named Pritam (Pritam Singh politician, Pritam the footballer/Chennaiyin FC, etc.)
+    - Generic Bollywood gossip where Pritam is not the subject or has no mention or his music has no mention.
+    - Spam, recipes, shopping, sports, politics, crime news, etc.
 
-Only YES or NO — no explanations."""
+    Respond in only YES or NO — no explanations."""
 
 
 DEFAULT_SYSTEM_PROMPT = build_ai_filter_prompt()

@@ -1,12 +1,15 @@
 # ═══════════════════════════════════════════════════════════════
 #  dedup.py  —  Persistent deduplication across runs
 #
-#  Uses a JSON file (seen_urls.json) to track every URL that has
-#  ever been emailed. Delete the file to reset and start fresh.
+#  Uses a JSON file (seen_urls.json) to track every URL and title
+#  that has been emailed. Delete the file to reset and start fresh.
 #
-#  Key design: ALL dedup (batch + persistent) works on a
-#  *normalised* URL so the same article fetched via RSS and via
-#  Google News gets an identical hash and is deduplicated.
+#  Key design: ALL dedup (batch + persistent) works on:
+#  1. Normalised URL hash — catches same article from different sources
+#  2. Normalised title hash — catches same story with different URLs
+#
+#  This ensures the same article from Bollywood Hungama RSS, Google
+#  Alerts, Times of India, etc. won't be sent twice.
 # ═══════════════════════════════════════════════════════════════
 
 import json
@@ -87,44 +90,91 @@ def _title_hash(title: str) -> str:
     return hashlib.md5(clean.encode()).hexdigest()
 
 
-def load_seen(filepath: str) -> set:
-    """Load the set of seen URL hashes from disk. Returns empty set if file missing."""
+def load_seen(filepath: str) -> dict:
+    """Load the set of seen URL hashes and title hashes from disk.
+    
+    Returns dict with keys 'urls' and 'titles' containing sets.
+    Returns empty dict with empty sets if file missing.
+    """
     if not os.path.exists(filepath):
-        return set()
+        return {"urls": set(), "titles": set()}
     try:
         with open(filepath, "r") as f:
-            return set(json.load(f))
+            data = json.load(f)
+            # Handle both old format (list) and new format (dict)
+            if isinstance(data, list):
+                # Old format: list of URL hashes only
+                return {"urls": set(data), "titles": set()}
+            else:
+                # New format: dict with 'urls' and 'titles' keys
+                return {
+                    "urls": set(data.get("urls", [])),
+                    "titles": set(data.get("titles", []))
+                }
     except Exception as e:
         logger.warning(f"[Dedup] Could not load {filepath}: {e}")
-        return set()
+        return {"urls": set(), "titles": set()}
 
 
-def save_seen(filepath: str, seen: set):
-    """Persist the seen set to disk."""
+def save_seen(filepath: str, seen: dict):
+    """Persist the seen dict (with 'urls' and 'titles' sets) to disk."""
     try:
+        data = {
+            "urls": list(seen.get("urls", set())),
+            "titles": list(seen.get("titles", set()))
+        }
         with open(filepath, "w") as f:
-            json.dump(list(seen), f, indent=2)
+            json.dump(data, f, indent=2)
     except Exception as e:
         logger.error(f"[Dedup] Could not save {filepath}: {e}")
 
 
-def filter_new(articles: list[dict], seen: set) -> tuple[list[dict], set]:
+def filter_new(articles: list[dict], seen: dict) -> tuple[list[dict], dict]:
     """
-    Return only articles whose normalised URLs haven't been seen before.
-    Also updates and returns the seen set (caller must save it after sending).
+    Return only articles whose normalised URLs or titles haven't been seen before.
+    Also updates and returns the seen dict with both URL and title hashes.
 
     NOTE: caller should save_seen() ONLY after a successful send so that
     a failed run does not silently swallow articles.
+    
+    Args:
+        articles: List of article dicts
+        seen: Dict with keys 'urls' and 'titles', each containing sets of hashes
+        
+    Returns:
+        Tuple of (new_articles list, updated seen dict)
     """
     new_articles = []
-    new_hashes   = []          # collect separately so we add only if article is new
+    new_url_hashes = []
+    new_title_hashes = []
+    
+    seen_urls = seen.get("urls", set())
+    seen_titles = seen.get("titles", set())
+    
     for art in articles:
-        h = _hash(art.get("url", ""))
-        if h not in seen:
-            new_hashes.append(h)
-            new_articles.append(art)
-    # Add to seen only after we've decided what's new
-    seen.update(new_hashes)
+        url = art.get("url", "")
+        title = art.get("title", "")
+        
+        url_hash = _hash(url)
+        title_hash = _title_hash(title)
+        
+        # Check if we've seen this article by URL OR by title
+        if url_hash in seen_urls or title_hash in seen_titles:
+            logger.debug(
+                f"[Dedup] Cross-run duplicate dropped: '{title[:60]}' "
+                f"(url_match={url_hash in seen_urls}, "
+                f"title_match={title_hash in seen_titles})"
+            )
+            continue
+        
+        new_url_hashes.append(url_hash)
+        new_title_hashes.append(title_hash)
+        new_articles.append(art)
+    
+    # Update seen with new hashes
+    seen["urls"].update(new_url_hashes)
+    seen["titles"].update(new_title_hashes)
+    
     return new_articles, seen
 
 
@@ -143,6 +193,7 @@ def deduplicate_within_batch(articles: list[dict]) -> list[dict]:
     seen_url_hashes   = set()
     seen_title_hashes = set()
     unique = []
+    duplicates = []
 
     for art in articles:
         url   = art.get("url", "")
@@ -152,6 +203,8 @@ def deduplicate_within_batch(articles: list[dict]) -> list[dict]:
         th = _title_hash(title)
 
         if uh in seen_url_hashes or th in seen_title_hashes:
+            dup_type = "URL" if uh in seen_url_hashes else "Title"
+            duplicates.append(f"  - {title[:70]} ({dup_type})")
             logger.debug(
                 f"[Dedup] Batch duplicate dropped: '{title[:60]}' "
                 f"(url_match={uh in seen_url_hashes}, "
@@ -166,4 +219,6 @@ def deduplicate_within_batch(articles: list[dict]) -> list[dict]:
     dupes = len(articles) - len(unique)
     if dupes:
         logger.info(f"[Dedup] Removed {dupes} duplicate(s) from batch ({len(unique)} remain).")
+        if duplicates and len(duplicates) <= 10:
+            logger.info("  Duplicates dropped:\n" + "\n".join(duplicates))
     return unique
