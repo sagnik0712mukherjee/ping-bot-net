@@ -41,6 +41,9 @@ KEYWORDS = [
     "#PritamMusic",
     "#PritamComposer",
     "@ipritamofficial",
+    "Mahmood Bollywood",
+    "Mahmood Pritam",
+    "Mashooqa"
 ]
 
 # ── API Keys (read from environment / GitHub Actions secrets) ──
