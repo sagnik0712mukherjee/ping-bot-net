@@ -43,7 +43,17 @@ KEYWORDS = [
     "@ipritamofficial",
     "Mahmood Bollywood",
     "Mahmood Pritam",
-    "Mashooqa"
+    "Mashooqa",
+    "Pritam Vallah",
+    "Vallah cocktail",
+    "Prtiam Tujhko",
+    "Tujhko Cocktail",
+    "Tum hi ho Bandhu Pritam",
+    "Tum Hi Ho Bandhu Cocktail",
+    "Jagg se Laaj Pritam",
+    "Jagg se Laaj Cocktail",
+    "Cocktail Song Pritam",
+    "Cocktail Song Composer"
 ]
 
 # ── API Keys (read from environment / GitHub Actions secrets) ──
