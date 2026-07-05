@@ -22,16 +22,14 @@ KEYWORDS = [
     "Pritam new song",
     "Pritam album",
     "Pritam interview",
-    "Pritam Bhooth Bangla",
     "Pritam Arijit",
     "Pritam Cocktail 2",
     "Pritam Aashiqui",
-    "Pritam O Sundari",
     "Pritam Retire",
+    # Plagiarism / controversy angle
     "Pritam copy",
     "Pritam copied",
     "Pritam Original",
-    # Plagiarism / controversy angle
     "Pritam chori song",
     "Pritam chor",
     "Pritam copycat",
@@ -41,13 +39,8 @@ KEYWORDS = [
     "#PritamMusic",
     "#PritamComposer",
     "@ipritamofficial",
-    "Mahmood Bollywood",
-    "Mahmood Pritam",
-    "Mashooqa",
     "Pritam Vallah",
-    "Vallah cocktail",
     "Prtiam Tujhko",
-    "Tujhko Cocktail",
     "Tum hi ho Bandhu Pritam",
     "Tum Hi Ho Bandhu Cocktail",
     "Jagg se Laaj Pritam",
@@ -95,6 +88,8 @@ def build_ai_filter_prompt() -> str:
     - About a different person named Pritam (Pritam Singh politician, Pritam the footballer/Chennaiyin FC, etc.)
     - Generic Bollywood gossip where Pritam is not the subject or has no mention or his music has no mention.
     - Spam, recipes, shopping, sports, politics, crime news, etc.
+    - Mentions Pritam as a word but is not about him.
+    - Some movie or web series that has 'Pritam' in the title but is not about the composer or his music.
 
     Respond in only YES or NO — no explanations."""
 
