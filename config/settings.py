@@ -23,7 +23,6 @@ KEYWORDS = [
     "Pritam album",
     "Pritam interview",
     "Pritam Arijit",
-    "Pritam Cocktail 2",
     "Pritam Aashiqui",
     "Pritam Retire",
     # Plagiarism / controversy angle
@@ -39,14 +38,9 @@ KEYWORDS = [
     "#PritamMusic",
     "#PritamComposer",
     "@ipritamofficial",
-    "Pritam Vallah",
-    "Prtiam Tujhko",
-    "Tum hi ho Bandhu Pritam",
-    "Tum Hi Ho Bandhu Cocktail",
-    "Jagg se Laaj Pritam",
-    "Jagg se Laaj Cocktail",
-    "Cocktail Song Pritam",
-    "Cocktail Song Composer"
+    "Pritam Haivaan",
+    "Pritam Haivaan Song",
+    "Pritam Mere Hero hai Woh Haivaan Song",
 ]
 
 # ── API Keys (read from environment / GitHub Actions secrets) ──
