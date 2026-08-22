@@ -47,11 +47,11 @@ KEYWORDS = [
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
 GNEWS_KEY = os.getenv("GNEWS_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = "gpt-5.4"
+OPENAI_MODEL = "gpt-5.6-terra"
 
 # ── OpenAI Token Pricing (for cost display in email footer) ────
-OPENAI_INPUT_TOKEN_COST = float(os.getenv("OPENAI_INPUT_TOKEN_COST", "0.000003"))
-OPENAI_OUTPUT_TOKEN_COST = float(os.getenv("OPENAI_OUTPUT_TOKEN_COST", "0.000006"))
+OPENAI_INPUT_TOKEN_COST = float(os.getenv("OPENAI_INPUT_TOKEN_COST", "0.000002"))   # $2.00 / 1M
+OPENAI_OUTPUT_TOKEN_COST = float(os.getenv("OPNAI_OUTPUT_TOKEN_COST", "0.000012")) # $12.00 / 1M
 
 
 # ── AI Filter prompt ───────────────────────────────────────────
